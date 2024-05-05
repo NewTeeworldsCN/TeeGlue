@@ -359,7 +359,6 @@ private:
 	int m_Protocol;
 
 	//
-	void Reset();
 	void ResetStats();
 	void SetError(const char *pString);
 	void AckChunks(int Ack);
@@ -379,6 +378,8 @@ public:
 
 	void SetToken(TOKEN Token);
 	void SetProtocol(int Protocol);
+
+	void Reset();
 
 	TOKEN Token() const { return m_Token; }
 	TOKEN PeerToken() const { return m_PeerToken; }

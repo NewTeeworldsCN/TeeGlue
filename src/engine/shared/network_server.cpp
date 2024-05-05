@@ -234,7 +234,8 @@ int CNetServer::Recv(CNetChunk *pChunk, TOKEN *pResponseToken)
 						if(m_aSlots[i].m_Connection.State() == NET_CONNSTATE_OFFLINE)
 						{
 							m_NumClients++;
-							
+
+							m_aSlots[i].m_Connection.Reset();
 							m_aSlots[i].m_Connection.SetToken(m_RecvUnpacker.m_Data.m_Token);
 							m_aSlots[i].m_Connection.SetProtocol(Protocol);
 							m_aSlots[i].m_Connection.Feed(&m_RecvUnpacker.m_Data, &Addr);

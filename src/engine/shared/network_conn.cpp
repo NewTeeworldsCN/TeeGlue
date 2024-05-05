@@ -12,6 +12,8 @@ const unsigned char SECURITY_TOKEN_MAGIC[4] = {'T', 'K', 'E', 'N'};
 void CNetConnection::ResetStats()
 {
 	mem_zero(&m_Stats, sizeof(m_Stats));
+	mem_zero(&m_PeerAddr, sizeof(m_PeerAddr));
+	m_LastUpdateTime = 0;
 }
 
 void CNetConnection::Reset()
@@ -22,15 +24,13 @@ void CNetConnection::Reset()
 	m_RemoteClosed = 0;
 
 	m_State = NET_CONNSTATE_OFFLINE;
-	m_LastSendTime = 0;
-	m_LastRecvTime = 0;
-	m_LastUpdateTime = 0;
 	m_Token = NET_TOKEN_NONE;
 	m_PeerToken = NET_TOKEN_NONE;
 
 	m_Protocol = NETPROTOCOL_UNKNOWN;
-
-	mem_zero(&m_PeerAddr, sizeof(m_PeerAddr));
+	
+	m_LastSendTime = 0;
+	m_LastRecvTime = 0;
 
 	m_Buffer.Init();
 
@@ -207,6 +207,7 @@ int CNetConnection::Connect(NETADDR *pAddr)
 
 	// init connection
 	Reset();
+	mem_zero(&m_PeerAddr, sizeof(m_PeerAddr));
 	m_LastRecvTime = time_get();
 	m_PeerAddr = *pAddr;
 	m_PeerToken = NET_TOKEN_NONE;

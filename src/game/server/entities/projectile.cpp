@@ -21,6 +21,7 @@ CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, 
 	m_SoundImpact = SoundImpact;
 	m_Weapon = Weapon;
 	m_StartTick = Server()->Tick();
+	m_LastBounceTick = -1;
 	m_Explosive = Explosive;
 
 	GameWorld()->InsertEntity(this);
@@ -91,6 +92,26 @@ void CProjectile::Tick()
 
 		GameWorld()->DestroyEntity(this);
 	}
+}
+
+void CProjectile::DoBounce()
+{
+	if(Server()->Tick() - m_LastBounceTick < 10)
+		return;
+
+	float Pt = (Server()->Tick()-m_StartTick-1)/(float)Server()->TickSpeed();
+	float Ct = (Server()->Tick()-m_StartTick)/(float)Server()->TickSpeed();
+	vec2 PrevPos = GetPos(Pt);
+	vec2 CurPos = GetPos(Ct);
+
+	GameServer()->CreateSound(CurPos, SOUND_HOOK_NOATTACH);
+
+	m_StartTick = Server()->Tick();
+
+	m_Pos = CurPos;
+	m_Direction = normalize(PrevPos - CurPos);
+
+	m_LastBounceTick = Server()->Tick();
 }
 
 void CProjectile::TickPaused()

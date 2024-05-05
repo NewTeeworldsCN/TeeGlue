@@ -8,6 +8,14 @@
 #include <game/gamecore.h>
 #include <game/server/entity.h>
 
+//input count
+struct CInputCount
+{
+	int m_Presses;
+	int m_Releases;
+};
+
+CInputCount CountInput(int Prev, int Cur);
 
 class CCharacter : public CEntity
 {
@@ -107,6 +115,9 @@ private:
 	int m_Health;
 	int m_Armor;
 
+	bool m_AutoFired;
+	bool m_Fired;
+
 	int m_TriggeredEvents;
 
 	// ninja
@@ -129,6 +140,12 @@ public:
 	CCharacterCore *Core() { return &m_Core; }
 	NinjaStat *NinjaStat() { return &m_Ninja; }
 	WeaponStat *WeaponStat(int Weapon) { return &m_aWeapons[Weapon]; }
+
+	CNetObj_PlayerInput *LatestPrevInput() { return &m_LatestPrevInput; }
+	CNetObj_PlayerInput *LatestInput() { return &m_LatestInput; }
+	CNetObj_PlayerInput *Input() { return &m_Input; }
+	int ActiveWeapon() const { return m_ActiveWeapon; }
+	bool IsFired();
 };
 
 #endif

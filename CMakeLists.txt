@@ -1004,6 +1004,7 @@ set(EXPECTED_DATA
   maps/dm7.map
   maps/dm8.map
   maps/dm9.map
+  maps/Journey.map
   maps/license.txt
   maps/lms1.map
   maps/readme.txt
@@ -1027,7 +1028,6 @@ set(EXPECTED_DATA
   race_flag.png
   server_lang/index.json
   server_lang/zh-CN.json
-  server_lang/zh-TW.json
   skins/beaver.json
   skins/bluekitty.json
   skins/bluestripe.json
@@ -1694,6 +1694,8 @@ set_src(ENGINE_SERVER GLOB src/engine/server
 )
 set_src(GAME_SERVER GLOB_RECURSE src/game/server
   alloc.h
+  entities/bomb.cpp
+  entities/bomb.h
   entities/character.cpp
   entities/character.h
   entities/flag.cpp
@@ -1712,18 +1714,10 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   gamecontext.h
   gamecontroller.cpp
   gamecontroller.h
-  gamemodes/ctf.cpp
-  gamemodes/ctf.h
-  gamemodes/dm.cpp
-  gamemodes/dm.h
-  gamemodes/lms.cpp
-  gamemodes/lms.h
-  gamemodes/lts.cpp
-  gamemodes/lts.h
-  gamemodes/mod.cpp
-  gamemodes/mod.h
-  gamemodes/tdm.cpp
-  gamemodes/tdm.h
+  gamemodes/cace.cpp
+  gamemodes/cace.h
+  gamemodes/items-snap.cpp
+  gamemodes/items-tick.cpp
   gameworld.cpp
   gameworld.h
   localization.cpp

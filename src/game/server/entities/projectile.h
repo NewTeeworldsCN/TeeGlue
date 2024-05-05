@@ -20,8 +20,12 @@ public:
 	vec2 GetPos(float Time);
 	void FillInfo(CNetObj_Projectile *pProj);
 
+	int GetLastBounceTick() const { return m_LastBounceTick; }
+	int GetStartTick() const { return m_StartTick; }
 	int GetOwner() const { return m_Owner; }
 	void LoseOwner();
+
+	void DoBounce();
 
 	virtual void Reset();
 	virtual void Tick();
@@ -39,6 +43,7 @@ private:
 	int m_Weapon;
 	float m_Force;
 	int m_StartTick;
+	int m_LastBounceTick;
 	bool m_Explosive;
 };
 

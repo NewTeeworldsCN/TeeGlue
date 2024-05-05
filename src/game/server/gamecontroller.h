@@ -71,6 +71,7 @@ class IGameController
 
 	void CycleMap();
 
+protected:
 	// spawn
 	struct CSpawnEval
 	{
@@ -172,7 +173,7 @@ public:
 	virtual void OnPlayerReadyChange(class CPlayer *pPlayer);
 	virtual void OnPlayerCommand(class CPlayer *pPlayer, const char *pCommandName, const char *pCommandArgs) {};
 
-	void OnReset();
+	virtual void OnReset();
 
 	// game
 	enum

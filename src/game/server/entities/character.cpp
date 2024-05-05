@@ -11,12 +11,14 @@
 #include "laser.h"
 #include "projectile.h"
 
+/*
 //input count
 struct CInputCount
 {
 	int m_Presses;
 	int m_Releases;
 };
+*/
 
 CInputCount CountInput(int Prev, int Cur)
 {
@@ -77,6 +79,8 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 
 	GameWorld()->InsertEntity(this);
 	m_Alive = true;
+
+	m_Fired = false;
 
 	GameServer()->m_pController->OnCharacterSpawn(this);
 
@@ -886,4 +890,9 @@ void CCharacter::Snap(int SnappingClient)
 void CCharacter::PostSnap()
 {
 	m_TriggeredEvents = 0;
+}
+
+bool CCharacter::IsFired()
+{
+	return m_AttackTick == Server()->Tick() - 1;
 }

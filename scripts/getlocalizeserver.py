@@ -73,7 +73,7 @@ if __name__ == '__main__':
     for key in sorted(Translate):
         SortTranslate.setdefault(key, "")
 
-    languagefiles = ['zh-CN', 'zh-TW']
+    languagefiles = ['zh-CN']
 
     for filename in languagefiles:
         if os.path.exists(f"datasrc/server_lang/{filename}.json") == False:

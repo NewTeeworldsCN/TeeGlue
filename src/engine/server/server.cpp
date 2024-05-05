@@ -971,6 +971,15 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 					m_aClients[ClientID].m_Version = Unpacker.GetInt();
 
 				m_aClients[ClientID].m_State = CClient::STATE_CONNECTING;
+				if(ClientProtocol(ClientID) == NETPROTOCOL_SIX)
+				{
+					CMsgPacker MsgDDNet(0, true, false);
+					CUuid Uuid = CalculateUuid("capabilities@ddnet.tw");
+					MsgDDNet.AddRaw(&Uuid, sizeof(Uuid));
+					MsgDDNet.AddInt(5); // version
+					MsgDDNet.AddInt(0); // flags
+					SendMsg(&MsgDDNet, MSGFLAG_VITAL, ClientID);
+				}
 				SendMap(ClientID);
 			}
 		}

@@ -101,6 +101,14 @@
 		"value": "所有玩家被移入旁观位"
 	},
 	{
+		"key": "Bomb",
+		"value": "炸弹"
+	},
+	{
+		"key": "Game aborted",
+		"value": "游戏中止"
+	},
+	{
 		"key": "Invalid spectator id used",
 		"value": "无效的旁观ID"
 	},
@@ -133,6 +141,10 @@
 		"value": "双方队伍已被交换"
 	},
 	{
+		"key": "Tele Laser",
+		"value": "传送激光"
+	},
+	{
 		"key": "The blue flag was captured by '%s'",
 		"value": "蓝队旗帜被 '%s' 夺取"
 	},
@@ -149,6 +161,18 @@
 		"value": "红队旗帜被 '%s' 夺取（%.2f秒）"
 	},
 	{
+		"key": "Type /s or /switch to switch your item!",
+		"value": "聊天框输入/s或者/switch切换你的物品!"
+	},
+	{
+		"key": "Use hammer to throw it!",
+		"value": "使用锤子将炸弹丢出!"
+	},
+	{
+		"key": "Use hook to pick this",
+		"value": "使用钩子捡起它"
+	},
+	{
 		"key": "Vote aborted",
 		"value": "投票已中止"
 	},
@@ -161,12 +185,28 @@
 		"value": "投票已通过"
 	},
 	{
+		"key": "Wave Bomb",
+		"value": "音波炸弹"
+	},
+	{
 		"key": "Whisper",
 		"value": "私聊"
 	},
 	{
+		"key": "Wow!! You picked a wave bomb!",
+		"value": "哇草!! 你捡到了一个音波炸弹!"
+	},
+	{
 		"key": "You must reconnect to change identity.",
 		"value": "你必须重新连接以更改身份"
+	},
+	{
+		"key": "You picked a bomb!",
+		"value": "你捡到了个炸弹!"
+	},
+	{
+		"key": "You picked tele laser x%d!!",
+		"value": "你捡到了%d个传送激光!"
 	},
 	{
 		"key": "You were moved to the blue team due to team balancing",

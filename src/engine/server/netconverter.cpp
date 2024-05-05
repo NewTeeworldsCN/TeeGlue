@@ -1308,7 +1308,7 @@ int CNetConverter::DeepSystemMsgConvert6(CMsgPacker *pMsg, int Flags, int ToClie
             CMsgPacker Msg6(SystemMsg7To6(pMsg->Type()), true, false);
             Msg6.AddRaw(pMsg->Data(), pMsg->Size());
 
-            return Server()->SendMsg(&Msg6, Flags | MSGFLAG_NORECORD, ToClientID); // no record
+            return Server()->SendMsg(&Msg6, Flags, ToClientID); // no record
         }
         case NETMSG_MAP_CHANGE:
         {

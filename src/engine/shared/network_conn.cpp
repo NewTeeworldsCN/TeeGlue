@@ -28,7 +28,7 @@ void CNetConnection::Reset()
 	m_PeerToken = NET_TOKEN_NONE;
 
 	m_Protocol = NETPROTOCOL_UNKNOWN;
-	
+
 	m_LastSendTime = 0;
 	m_LastRecvTime = 0;
 
@@ -155,7 +155,7 @@ int CNetConnection::QueueChunkEx(int Flags, int DataSize, const void *pData, int
 		else
 		{
 			// out of buffer
-			Disconnect("too weak connection (out of buffer)");
+			// Disconnect("too weak connection (out of buffer)");
 			return -1;
 		}
 	}
@@ -335,7 +335,7 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr)
 						m_PeerAddr = *pAddr;
 						m_PeerToken = pPacket->m_ResponseToken;
 						m_Token = Token;
-						m_Protocol= Protocol;
+						m_Protocol = Protocol;
 						m_LastSendTime = Now;
 						m_LastRecvTime = Now;
 						m_LastUpdateTime = Now;

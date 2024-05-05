@@ -6,8 +6,9 @@
 #include <game/server/gamemodes/cace.h>
 #include <game/server/player.h>
 
-#include "character.h"
 #include "bomb.h"
+#include "character.h"
+#include "laser.h"
 #include "projectile.h"
 
 CBomb::CBomb(CGameWorld *pGameWorld, int Owner, int Type, vec2 Pos, vec2 Direction) :
@@ -37,6 +38,14 @@ void CBomb::Tick()
 			// explode
 			GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE);
 			GameServer()->CreateExplosion(m_Pos, m_Owner, WEAPON_HAMMER, 20); // enough to kill a player
+
+			// infclass
+			float AngleStep = 2.0f * pi / 12;
+			float RandomShift = random_float() * 2.0f * pi;
+			for(int i = 0; i < 12; i ++)
+			{
+				new CLaser(GameWorld(), m_Pos, direction(RandomShift + AngleStep * i), GameServer()->Tuning()->m_LaserReach, m_Owner);
+			}
 		}
 		else if(m_Type == WEAPON_WAVEBOMB)
 		{
@@ -63,6 +72,13 @@ void CBomb::Tick()
 						WEAPON_HAMMER);
 				}
             }
+			// infclass
+			float AngleStep = 2.0f * pi / 6;
+			float RandomShift = random_float() * 2.0f * pi;
+			for(int i = 0; i < 6; i ++)
+			{
+				new CLaser(GameWorld(), m_Pos, direction(RandomShift + AngleStep * i), GameServer()->Tuning()->m_LaserReach, m_Owner);
+			}
 
 			GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE);
             GameServer()->CreateExplosion(m_Pos, GetOwner(), WEAPON_HAMMER, 5);

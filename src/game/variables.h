@@ -143,7 +143,7 @@ MACRO_CONFIG_INT(SvVoteKick, sv_vote_kick, 1, 0, 1, CFGFLAG_SAVE|CFGFLAG_SERVER,
 MACRO_CONFIG_INT(SvVoteKickMin, sv_vote_kick_min, 0, 0, MAX_CLIENTS, CFGFLAG_SAVE|CFGFLAG_SERVER, "Minimum number of players required to start a kick vote")
 MACRO_CONFIG_INT(SvVoteKickBantime, sv_vote_kick_bantime, 5, 0, 1440, CFGFLAG_SAVE|CFGFLAG_SERVER, "The time to ban a player if kicked by vote. 0 makes it just use kick")
 
-MACRO_CONFIG_INT(CaceBombExplodeTime, cace_bomb_explode_time, 5, 3, 10, CFGFLAG_SAVE|CFGFLAG_SERVER, "The time to bomb explode (in seconds)")
+MACRO_CONFIG_INT(CaceBombExplodeTime, cace_bomb_explode_time, 3, 3, 10, CFGFLAG_SAVE|CFGFLAG_SERVER, "The time to bomb explode (in seconds)")
 
 // debug
 #ifdef CONF_DEBUG // this one can crash the server if not used correctly

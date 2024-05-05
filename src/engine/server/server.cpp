@@ -832,6 +832,35 @@ void CServer::SendMap(int ClientID)
 	SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH, ClientID);
 }
 
+void CServer::SendMapData(int ClientID, int Chunk)
+{
+	// F-DDrace
+	unsigned int ChunkSize = 1024-128;
+	unsigned int Offset = Chunk * ChunkSize;
+	int Last = 0;
+
+	unsigned int MapSize = m_aMapInfos[m_aClients[ClientID].MapType()].m_MapSize;
+	unsigned char *pMapData = m_aMapInfos[m_aClients[ClientID].MapType()].m_pMapData;
+	unsigned int MapCrc = m_aMapInfos[m_aClients[ClientID].MapType()].m_MapCrc;
+
+	if(Chunk < 0 || Offset > MapSize)
+		return;
+
+	if(Offset+ChunkSize >= MapSize)
+	{
+		ChunkSize = MapSize-Offset;
+		Last = 1;
+	}
+
+	CMsgPacker Msg(protocol6::NETMSG_MAP_DATA, true);
+	Msg.AddInt(Last);
+	Msg.AddInt(MapCrc);
+	Msg.AddInt(Chunk);
+	Msg.AddInt(ChunkSize);
+	Msg.AddRaw(&pMapData[Offset], ChunkSize);
+	SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH, ClientID);
+}
+
 void CServer::SendConnectionReady(int ClientID)
 {
 	CMsgPacker Msg(NETMSG_CON_READY, true, true);
@@ -987,7 +1016,27 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		{
 			if((pPacket->m_Flags&NET_CHUNKFLAG_VITAL) != 0 && (m_aClients[ClientID].m_State == CClient::STATE_CONNECTING || m_aClients[ClientID].m_State == CClient::STATE_CONNECTING_AS_SPEC))
 			{
-				int ChunkSize = (m_aClients[ClientID].m_Protocol == NETPROTOCOL_SIX) ? 1024 - 128 : MAP_CHUNK_SIZE;
+				if(m_aClients[ClientID].m_Protocol == NETPROTOCOL_SIX)
+				{
+					// F-DDrace
+					int Chunk = Unpacker.GetInt();
+					if(Chunk != m_aClients[ClientID].m_MapChunk)
+					{
+						SendMapData(ClientID, Chunk);
+						return;
+					}
+
+					if(Chunk == 0)
+					{
+						for(int i = 0; i < Config()->m_SvMapWindow; i++)
+							SendMapData(ClientID, i);
+					}
+					SendMapData(ClientID, Config()->m_SvMapWindow + m_aClients[ClientID].m_MapChunk);
+					m_aClients[ClientID].m_MapChunk++;
+					return;
+				}
+
+				int ChunkSize = MAP_CHUNK_SIZE;
 
 				// send map chunks
 				for(int i = 0; i < m_MapChunksPerRequest && m_aClients[ClientID].m_MapChunk >= 0; ++i)
@@ -1007,7 +1056,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 					CMsgPacker Msg(NETMSG_MAP_DATA, true, true);
 					if(m_aClients[ClientID].m_Protocol == NETPROTOCOL_SIX)
 					{
-						Msg.AddInt(m_aClients[ClientID].m_MapChunk == -1);
+						Msg.AddInt(m_aClients[ClientID].m_MapChunk == -1 ? 1 : 0);
 						Msg.AddInt(m_aMapInfos[m_aClients[ClientID].MapType()].m_MapCrc);
 						Msg.AddInt(Chunk);
 						Msg.AddInt(ChunkSize);

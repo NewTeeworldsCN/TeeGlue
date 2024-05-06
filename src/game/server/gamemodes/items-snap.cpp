@@ -62,7 +62,7 @@ void CGameControllerCace::PickupBombSnap(int SnappingClient, SPickupInfo *pPicku
 
         CNetObj_Projectile Proj;
 
-        Proj.m_StartTick = m_GameStartTick;
+        Proj.m_StartTick = Server()->Tick();
         Proj.m_Type = WEAPON_SHOTGUN;
 
         Proj.m_X = (int)(pPickupInfo->m_Pos.x + 24.0f * cos(ShiftedAngle));

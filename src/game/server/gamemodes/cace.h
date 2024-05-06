@@ -14,6 +14,8 @@ enum ECaceDefine
     WEAPON_BOMB = 0,
     WEAPON_WAVEBOMB,
     WEAPON_TELELASER,
+    WEAPON_HEALBOMB,
+
     NUM_CASEITEMS,
 };
 
@@ -58,7 +60,7 @@ public:
     ~CGameControllerCace();
 
     void Tick() override;
-    void OnReset() override;
+    void ResetGame() override;
     void Snap(int SnappingClient) override;
 	void OnCharacterSpawn(class CCharacter *pChr) override;
 
@@ -72,16 +74,19 @@ private:
     void PickupBombTick(SPickupInfo *pPickupInfo);
     void PickupWaveBombTick(SPickupInfo *pPickupInfo);
     void PickupTeleLaserTick(SPickupInfo *pPickupInfo);
+    void PickupHealBombTick(SPickupInfo *pPickupInfo);
 
     // item tick
     void ItemBombTick(int ClientID);
     void ItemWaveBombTick(int ClientID);
     void ItemTeleLaserTick(int ClientID);
+    void ItemHealBombTick(int ClientID);
 
     // pickup snap
     void PickupBombSnap(int SnappingClient, SPickupInfo *pPickupInfo);
     void PickupWaveBombSnap(int SnappingClient, SPickupInfo *pPickupInfo);
     void PickupTeleLaserSnap(int SnappingClient, SPickupInfo *pPickupInfo);
+    void PickupHealBombSnap(int SnappingClient, SPickupInfo *pPickupInfo);
 };
 
 #endif // GAME_SERVER_GAMEMODES_CACE_H

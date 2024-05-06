@@ -109,6 +109,10 @@
 		"value": "游戏中止"
 	},
 	{
+		"key": "Heal Bomb",
+		"value": "治疗炸弹"
+	},
+	{
 		"key": "Invalid spectator id used",
 		"value": "无效的旁观ID"
 	},
@@ -169,6 +173,10 @@
 		"value": "使用锤子将炸弹丢出!"
 	},
 	{
+		"key": "Use hammer to use it!",
+		"value": "使用锤子以使用炸弹!"
+	},
+	{
 		"key": "Use hook to pick this",
 		"value": "使用钩子捡起它"
 	},
@@ -203,6 +211,10 @@
 	{
 		"key": "You picked a bomb!",
 		"value": "你捡到了个炸弹!"
+	},
+	{
+		"key": "You picked a heal bomb!",
+		"value": "你捡到了治疗炸弹!"
 	},
 	{
 		"key": "You picked tele laser x%d!!",

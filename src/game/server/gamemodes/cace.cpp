@@ -85,6 +85,11 @@ CGameControllerCace::~CGameControllerCace()
 
 void CGameControllerCace::Tick()
 {
+    IGameController::Tick();
+
+	if(IsGamePaused())
+		return;
+
 	for(int i = 0; i < MAX_CLIENTS; i ++)
 	{
 		m_aCacePlayerActiveItem[i] = -1;
@@ -110,26 +115,12 @@ void CGameControllerCace::Tick()
 			CacePickupTick(Type, &PickupInfo);
 		}
 	}
-
-    IGameController::Tick();
 }
 
-void CGameControllerCace::OnReset()
+void CGameControllerCace::ResetGame()
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(GameServer()->m_apPlayers[i])
-		{
-			GameServer()->m_apPlayers[i]->m_RespawnDisabled = false;
-			GameServer()->m_apPlayers[i]->Respawn();
-			GameServer()->m_apPlayers[i]->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()/2;
-			if(m_RoundCount == 0)
-			{
-				GameServer()->m_apPlayers[i]->m_Score = 0;
-				GameServer()->m_apPlayers[i]->m_ScoreStartTick = Server()->Tick();
-			}
-			GameServer()->m_apPlayers[i]->m_IsReadyToPlay = true;
-		}
 		m_aCacePlayersInventory[i].clear();
 	}
 
@@ -142,6 +133,8 @@ void CGameControllerCace::OnReset()
 			PickupInfo.m_Type = random_int() % NUM_CASEITEMS;
 		}
 	}
+
+	IGameController::ResetGame();
 }
 
 void CGameControllerCace::Snap(int SnappingClient)

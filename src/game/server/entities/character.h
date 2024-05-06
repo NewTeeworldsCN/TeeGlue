@@ -96,6 +96,8 @@ private:
 	int m_ReloadTimer;
 	int m_AttackTick;
 
+	int m_HookTick;
+
 	int m_EmoteType;
 	int m_EmoteStop;
 
@@ -146,6 +148,7 @@ public:
 	CNetObj_PlayerInput *Input() { return &m_Input; }
 	int ActiveWeapon() const { return m_ActiveWeapon; }
 	bool IsFired();
+	bool IsHooked();
 };
 
 #endif

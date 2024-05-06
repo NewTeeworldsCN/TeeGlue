@@ -6,6 +6,7 @@
 
 #include <game/server/entities/bomb.h>
 #include <game/server/entities/character.h>
+#include <game/server/entities/dropped-pickup.h>
 #include <game/server/entities/pickup.h>
 #include <game/server/entities/projectile.h>
 
@@ -24,6 +25,7 @@ static const char* GetCaceItemName(int Type)
 		case WEAPON_BOMB: return FormatLocalize("Bomb");
 		case WEAPON_WAVEBOMB: return FormatLocalize("Wave Bomb");
 		case WEAPON_TELELASER: return FormatLocalize("Tele Laser");
+        case WEAPON_HEALBOMB: return FormatLocalize("Heal Bomb");
 	}
 	return "null";
 }
@@ -35,6 +37,7 @@ void CGameControllerCace::CacePickupTick(int Type, SPickupInfo *pPickupInfo)
 		case ECaceDefine::WEAPON_BOMB: PickupBombTick(pPickupInfo); break;
         case ECaceDefine::WEAPON_WAVEBOMB: PickupWaveBombTick(pPickupInfo); break;
         case ECaceDefine::WEAPON_TELELASER: PickupTeleLaserTick(pPickupInfo); break;
+        case ECaceDefine::WEAPON_HEALBOMB: PickupHealBombTick(pPickupInfo); break;
 	}
 }
 
@@ -45,6 +48,7 @@ void CGameControllerCace::CaceItemTick(int Type, int ClientID)
 		case ECaceDefine::WEAPON_BOMB: ItemBombTick(ClientID); break;
 		case ECaceDefine::WEAPON_WAVEBOMB: ItemWaveBombTick(ClientID); break;
         case ECaceDefine::WEAPON_TELELASER: ItemTeleLaserTick(ClientID); break;
+		case ECaceDefine::WEAPON_HEALBOMB: ItemHealBombTick(ClientID); break;
 	}
 }
 
@@ -63,6 +67,10 @@ void CGameControllerCace::GetPossibleItem(int Weapon, int ClientID, std::vector<
             if(m_aCacePlayersInventory[ClientID].count(ECaceDefine::WEAPON_WAVEBOMB) && 
                     m_aCacePlayersInventory[ClientID][ECaceDefine::WEAPON_WAVEBOMB])
 			    vPossibleItems.push_back(ECaceDefine::WEAPON_WAVEBOMB);
+
+            if(m_aCacePlayersInventory[ClientID].count(ECaceDefine::WEAPON_HEALBOMB) && 
+                    m_aCacePlayersInventory[ClientID][ECaceDefine::WEAPON_HEALBOMB])
+			    vPossibleItems.push_back(ECaceDefine::WEAPON_HEALBOMB);
 		}
 		break;
 		case WEAPON_GUN:
@@ -182,7 +190,7 @@ void CGameControllerCace::PickupBombTick(SPickupInfo *pPickupInfo)
         float Len = distance(pChr->GetPos(), pPickupInfo->m_Pos);
         if(Len < pChr->GetProximityRadius() + 24.0f)
         {
-            if(pChr->Input()->m_Hook&1)
+            if(pChr->IsHooked())
             {
                 pPickupInfo->m_PickedTick = Server()->Tick();
                 GameServer()->CreateSound(pPickupInfo->m_Pos, SOUND_PICKUP_ARMOR);
@@ -253,7 +261,7 @@ void CGameControllerCace::PickupWaveBombTick(SPickupInfo *pPickupInfo)
         float Len = distance(pChr->GetPos(), pPickupInfo->m_Pos);
         if(Len < pChr->GetProximityRadius() + 24.0f)
         {
-            if(pChr->Input()->m_Hook&1)
+            if(pChr->IsHooked())
             {
                 pPickupInfo->m_PickedTick = Server()->Tick();
                 GameServer()->CreateSound(pPickupInfo->m_Pos, SOUND_PICKUP_ARMOR);
@@ -307,6 +315,54 @@ void CGameControllerCace::PickupTeleLaserTick(SPickupInfo *pPickupInfo)
     }
 }
 
+void CGameControllerCace::PickupHealBombTick(SPickupInfo *pPickupInfo)
+{
+    for(CProjectile *pProj = (CProjectile *) GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_PROJECTILE); pProj; pProj = (CProjectile *) pProj->TypeNext())
+    {
+        int Tick = Server()->Tick() - pProj->GetStartTick();
+        float Len = distance(pProj->GetPos(Tick / (float) Server()->TickSpeed()), pPickupInfo->m_Pos);
+        if(Len < 24.0f)
+        {
+            vec2 Direction = normalize(pProj->GetPos((Tick - 1) / (float) Server()->TickSpeed()) -
+                        pProj->GetPos(Tick / (float) Server()->TickSpeed()));
+
+            // random_int() % 2, 0: PICKUP_HEALTH, 1: PICKUP_ARMOR
+            new CDroppedPickup(&GameServer()->m_World, random_int() % 2, pPickupInfo->m_Pos, Direction);
+        }
+    }
+
+    for(CCharacter *pChr = (CCharacter *) GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER); pChr; pChr = (CCharacter *) pChr->TypeNext())
+    {
+        if(!pChr->IsAlive())
+            continue;
+
+        float Len = distance(pChr->GetPos(), pPickupInfo->m_Pos);
+        if(Len < pChr->GetProximityRadius() + 24.0f)
+        {
+            if(pChr->IsHooked())
+            {
+                pPickupInfo->m_PickedTick = Server()->Tick();
+                GameServer()->CreateSound(pPickupInfo->m_Pos, SOUND_PICKUP_HEALTH);
+                GameServer()->SendChatLocalize(-1, CHAT_ALL, pChr->GetPlayer()->GetCID(), 
+                    FormatLocalize("You picked a heal bomb!"));
+                GameServer()->SendChatLocalize(-1, CHAT_ALL, pChr->GetPlayer()->GetCID(), 
+                    FormatLocalize("Use hammer to use it!"));
+
+                if(!m_aCacePlayersInventory[pChr->GetPlayer()->GetCID()].count(ECaceDefine::WEAPON_HEALBOMB))
+                    m_aCacePlayersInventory[pChr->GetPlayer()->GetCID()][ECaceDefine::WEAPON_HEALBOMB] = 0;
+                m_aCacePlayersInventory[pChr->GetPlayer()->GetCID()][ECaceDefine::WEAPON_HEALBOMB] ++;
+
+                RefreshItem(pChr->GetPlayer()->GetCID());
+                // no more
+                return;
+            }
+            else if(Server()->Tick() % 25 == 0)
+            {
+                GameServer()->SendBroadcastLocalize(FormatLocalize("Use hook to pick this"), pChr->GetPlayer()->GetCID());
+            }
+        }
+    }
+}
 // Items
 void CGameControllerCace::ItemBombTick(int ClientID)
 {
@@ -392,6 +448,36 @@ void CGameControllerCace::ItemTeleLaserTick(int ClientID)
     GameServer()->CreateDeath(pChr->Core()->m_Pos, ClientID);
 
     m_aCacePlayersInventory[ClientID][ECaceDefine::WEAPON_TELELASER] --;
+
+    RefreshItem(ClientID);
+}
+
+void CGameControllerCace::ItemWaveBombTick(int ClientID)
+{
+    CCharacter *pChr = GameServer()->GetPlayerChar(ClientID);
+    if(!pChr)
+    {
+        return;
+    }
+
+    if(pChr->ActiveWeapon() != WEAPON_HAMMER || !pChr->IsFired())
+    {
+        return;
+    }
+    // infclass
+    float Angle = 2.0f*pi;
+    for(int i = 0; i < 12; i ++)
+    {
+        float ShiftedAngle = Angle + 2.0*pi*static_cast<float>(i)/static_cast<float>(12);
+
+        vec2 ToPos = vec2(pChr->GetPos().x + 24.0f * cos(ShiftedAngle), pChr->GetPos().y + 24.0f * sin(ShiftedAngle));
+        vec2 Direction = normalize(ToPos - pChr->GetPos());
+
+        // random_int() % 2, 0: PICKUP_HEALTH, 1: PICKUP_ARMOR
+        new CDroppedPickup(&GameServer()->m_World, random_int() % 2, pChr->GetPos(), Direction);
+    }
+
+    m_aCacePlayersInventory[ClientID][ECaceDefine::WEAPON_HEALBOMB] --;
 
     RefreshItem(ClientID);
 }

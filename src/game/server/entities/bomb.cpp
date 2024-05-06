@@ -29,7 +29,7 @@ void CBomb::Tick()
 {
 	m_Vel.y += GameWorld()->m_Core.m_Tuning.m_Gravity;
 
-	GameServer()->Collision()->MovePoint(&m_Pos, &m_Vel, 0.5f, nullptr);
+	GameServer()->Collision()->MoveBox(&m_Pos, &m_Vel, vec2(GetProximityRadius(), GetProximityRadius()), 0.25f, nullptr);
 
 	if(Server()->Tick() >= m_StartTick + Config()->m_CaceBombExplodeTime * Server()->TickSpeed())
 	{

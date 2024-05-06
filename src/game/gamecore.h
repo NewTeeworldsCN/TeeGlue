@@ -157,6 +157,7 @@ public:
 	vec2 m_HookPos;
 	vec2 m_HookDir;
 	int m_HookTick;
+	int m_HookStartTick;
 	int m_HookState;
 	int m_HookedPlayer;
 

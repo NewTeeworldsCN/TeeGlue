@@ -487,6 +487,9 @@ void CCharacter::OnPredictedInput(CNetObj_PlayerInput *pNewInput)
 	if(mem_comp(&m_Input, pNewInput, sizeof(CNetObj_PlayerInput)) != 0)
 		m_LastAction = Server()->Tick();
 
+	if(!m_Input.m_Hook && pNewInput->m_Hook&1)
+		m_HookTick = Server()->Tick();
+
 	// copy new input
 	mem_copy(&m_Input, pNewInput, sizeof(m_Input));
 	m_NumInputs++;
@@ -646,6 +649,7 @@ void CCharacter::TickDefered()
 void CCharacter::TickPaused()
 {
 	++m_AttackTick;
+	++m_HookTick;
 	++m_Ninja.m_ActivationTick;
 	++m_ReckoningTick;
 	if(m_LastAction != -1)
@@ -895,4 +899,9 @@ void CCharacter::PostSnap()
 bool CCharacter::IsFired()
 {
 	return m_AttackTick == Server()->Tick() - 1;
+}
+
+bool CCharacter::IsHooked()
+{
+	return m_HookTick == Server()->Tick() - 1;
 }

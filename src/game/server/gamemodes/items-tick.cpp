@@ -452,7 +452,7 @@ void CGameControllerCace::ItemTeleLaserTick(int ClientID)
     RefreshItem(ClientID);
 }
 
-void CGameControllerCace::ItemWaveBombTick(int ClientID)
+void CGameControllerCace::ItemHealBombTick(int ClientID)
 {
     CCharacter *pChr = GameServer()->GetPlayerChar(ClientID);
     if(!pChr)

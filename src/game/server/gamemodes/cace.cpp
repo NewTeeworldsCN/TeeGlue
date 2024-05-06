@@ -24,6 +24,7 @@ static int GetEntitySnapIDNum(int Type)
 		case WEAPON_BOMB:
 		case WEAPON_WAVEBOMB: 
 		case WEAPON_TELELASER:
+		case WEAPON_HEALBOMB:
 			return 5;
 	}
 	return 1;

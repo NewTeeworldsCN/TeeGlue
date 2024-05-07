@@ -11,6 +11,7 @@ public:
 	CDroppedPickup(CGameWorld *pGameWorld, int Type, vec2 Pos, vec2 Direction);
 
 	void Tick() override;
+	void Reset() override;
 	void Snap(int SnappingClient) override;
 
 private:

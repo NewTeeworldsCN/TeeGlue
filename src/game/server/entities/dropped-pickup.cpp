@@ -15,11 +15,28 @@ CDroppedPickup::CDroppedPickup(CGameWorld *pGameWorld, int Type, vec2 Pos, vec2 
 	GameWorld()->InsertEntity(this);
 }
 
+void CDroppedPickup::Reset()
+{
+	GameWorld()->DestroyEntity(this);
+}
+
 void CDroppedPickup::Tick()
 {
-	m_Vel.y += GameWorld()->m_Core.m_Tuning.m_Gravity;
+	// get ground state
+	const bool Grounded =
+		GameServer()->Collision()->CheckPoint(m_Pos.x + GetProximityRadius() / 2, m_Pos.y + GetProximityRadius() / 2 + 5)
+		|| GameServer()->Collision()->CheckPoint(m_Pos.x - GetProximityRadius() / 2, m_Pos.y + GetProximityRadius() / 2 + 5);
+
+	float Friction = Grounded ? GameWorld()->m_Core.m_Tuning.m_GroundFriction : GameWorld()->m_Core.m_Tuning.m_AirFriction;
+	
+	if(!Grounded)
+		m_Vel.y += GameWorld()->m_Core.m_Tuning.m_Gravity;
+	else
+		m_Vel.y = 0;
 
 	GameServer()->Collision()->MoveBox(&m_Pos, &m_Vel, vec2(GetProximityRadius(), GetProximityRadius()), 0.25f, nullptr);
+
+	m_Vel.x *= Friction;
 
 	// Check if a player intersected us
 	CCharacter *pChr = (CCharacter *)GameWorld()->ClosestEntity(m_Pos, 20.0f, CGameWorld::ENTTYPE_CHARACTER, 0);

@@ -25,11 +25,28 @@ CBomb::CBomb(CGameWorld *pGameWorld, int Owner, int Type, vec2 Pos, vec2 Directi
 	GameWorld()->InsertEntity(this);
 }
 
+void CBomb::Reset()
+{
+	GameWorld()->DestroyEntity(this);
+}
+
 void CBomb::Tick()
 {
-	m_Vel.y += GameWorld()->m_Core.m_Tuning.m_Gravity;
+	// get ground state
+	const bool Grounded =
+		GameServer()->Collision()->CheckPoint(m_Pos.x + GetProximityRadius() / 2, m_Pos.y + GetProximityRadius() / 2 + 5)
+		|| GameServer()->Collision()->CheckPoint(m_Pos.x - GetProximityRadius() / 2, m_Pos.y + GetProximityRadius() / 2 + 5);
+
+	float Friction = Grounded ? GameWorld()->m_Core.m_Tuning.m_GroundFriction : GameWorld()->m_Core.m_Tuning.m_AirFriction;
+	
+	if(!Grounded)
+		m_Vel.y += GameWorld()->m_Core.m_Tuning.m_Gravity;
+	else
+		m_Vel.y = 0;
 
 	GameServer()->Collision()->MoveBox(&m_Pos, &m_Vel, vec2(GetProximityRadius(), GetProximityRadius()), 0.25f, nullptr);
+
+	m_Vel.x *= Friction;
 
 	if(Server()->Tick() >= m_StartTick + Config()->m_CaceBombExplodeTime * Server()->TickSpeed())
 	{

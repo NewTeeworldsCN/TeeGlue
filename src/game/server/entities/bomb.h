@@ -11,6 +11,7 @@ public:
 	CBomb(CGameWorld *pGameWorld, int Owner, int Type, vec2 Pos, vec2 Direction);
 
 	void Tick() override;
+	void Reset() override;
 	void Snap(int SnappingClient) override;
 
 	int GetStartTick() const { return m_StartTick; }

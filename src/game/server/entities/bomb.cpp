@@ -18,7 +18,7 @@ CBomb::CBomb(CGameWorld *pGameWorld, int Owner, int Type, vec2 Pos, vec2 Directi
 
 	m_Type = Type;
 
-	m_Vel = Direction * 16.0f;
+	m_Vel = Direction * 48.0f;
 
 	m_StartTick = Server()->Tick();
 

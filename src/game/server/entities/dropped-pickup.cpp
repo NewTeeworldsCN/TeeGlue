@@ -10,7 +10,7 @@ CDroppedPickup::CDroppedPickup(CGameWorld *pGameWorld, int Type, vec2 Pos, vec2 
     CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, Pos, DroppedPickupPhysSize)
 {
 	m_Type = Type;
-    m_Vel = Direction * 8.0f;
+    m_Vel = Direction * 16.0f;
 
 	GameWorld()->InsertEntity(this);
 }

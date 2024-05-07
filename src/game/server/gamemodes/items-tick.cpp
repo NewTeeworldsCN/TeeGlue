@@ -466,9 +466,10 @@ void CGameControllerCace::ItemHealBombTick(int ClientID)
     }
     // infclass
     float Angle = 2.0f*pi;
-    for(int i = 0; i < 12; i ++)
+    int Num = random_int() % 3 + 3;
+    for(int i = 0; i < Num; i ++)
     {
-        float ShiftedAngle = Angle + 2.0*pi*static_cast<float>(i)/static_cast<float>(12);
+        float ShiftedAngle = Angle + 2.0*pi*static_cast<float>(i)/static_cast<float>(Num);
 
         vec2 ToPos = vec2(pChr->GetPos().x + 24.0f * cos(ShiftedAngle), pChr->GetPos().y + 24.0f * sin(ShiftedAngle));
         vec2 Direction = normalize(ToPos - pChr->GetPos());

@@ -18,7 +18,7 @@ CBomb::CBomb(CGameWorld *pGameWorld, int Owner, int Type, vec2 Pos, vec2 Directi
 
 	m_Type = Type;
 
-	m_Vel = Direction * 48.0f;
+	m_Vel = Direction * 24.0f;
 
 	m_StartTick = Server()->Tick();
 
@@ -37,7 +37,7 @@ void CBomb::Tick()
 		GameServer()->Collision()->CheckPoint(m_Pos.x + GetProximityRadius() / 2, m_Pos.y + GetProximityRadius() / 2 + 5)
 		|| GameServer()->Collision()->CheckPoint(m_Pos.x - GetProximityRadius() / 2, m_Pos.y + GetProximityRadius() / 2 + 5);
 
-	float Friction = Grounded ? GameWorld()->m_Core.m_Tuning.m_GroundFriction : GameWorld()->m_Core.m_Tuning.m_AirFriction;
+	float Friction = Grounded ? 0.75f : 0.99f;
 	
 	if(!Grounded)
 		m_Vel.y += GameWorld()->m_Core.m_Tuning.m_Gravity;

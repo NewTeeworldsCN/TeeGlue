@@ -441,7 +441,8 @@ void CGameControllerCace::ItemTeleLaserTick(int ClientID)
         TempPos = pChr->Core()->m_Pos;
         if(!GameServer()->Collision()->IntersectLine(TempPos, TempPos + Vel, nullptr, &TempPos))
         {
-            pChr->Core()->m_Pos = TempPos;
+            if(!GameServer()->Collision()->TestBox(TempPos, vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius())))
+                pChr->Core()->m_Pos = TempPos;
         }
     }
 

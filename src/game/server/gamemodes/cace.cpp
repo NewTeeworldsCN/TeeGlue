@@ -123,6 +123,8 @@ void CGameControllerCace::ResetGame()
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
 		m_aCacePlayersInventory[i].clear();
+		if(GameServer()->m_apPlayers[i])
+			GameServer()->m_apPlayers[i]->m_DeadPosActive = false;
 	}
 
 	for(auto& vPickupPoints : m_vCacePickupPoints)
@@ -176,6 +178,25 @@ void CGameControllerCace::OnCharacterSpawn(class CCharacter *pChr)
 	pChr->GiveWeapon(WEAPON_LASER, 0);
 
 	GameServer()->SendChatLocalize(-1, CHAT_ALL, pChr->GetPlayer()->GetCID(), FormatLocalize("Type /s or /switch to switch your item!"));
+}
+
+void CGameControllerCace::OnPlayerConnect(CPlayer *pPlayer)
+{
+	int ClientID = pPlayer->GetCID();
+	pPlayer->Respawn();
+
+	char aBuf[128];
+	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam());
+	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+
+	// update game info
+	UpdateGameInfo(ClientID);
+
+	if(IsGameRunning())
+	{
+		GameServer()->SendChatLocalize(-1, CHAT_ALL, ClientID, FormatLocalize("Race was already start! Hurry up! Be the first finisher!\nIf someone around you! Kill him!\nDo not let others kill you!"));
+		GameServer()->SendBroadcastLocalize(FormatLocalize("Race was already start! Hurry up! Be the first finisher!\nIf someone around you! Kill him!\nDo not let others kill you!"), ClientID);
+	}
 }
 
 bool CGameControllerCace::DoWincheckMatch()

@@ -121,6 +121,10 @@
 		"value": "没有此语言"
 	},
 	{
+		"key": "Race was already start! Hurry up! Be the first finisher!\nIf someone around you! Kill him!\nDo not let others kill you!",
+		"value": "竞速已经开始了! 加油! 争取第一个到达终点!\n如果有人在你旁边, 杀死他!\n不要让别人杀死你!"
+	},
+	{
 		"key": "Successfully changed language to English",
 		"value": "成功切换到简体中文"
 	},

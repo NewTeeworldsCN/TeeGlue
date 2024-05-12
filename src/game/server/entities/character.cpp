@@ -728,9 +728,33 @@ void CCharacter::Die(int Killer, int Weapon)
 	// this is for auto respawn after 3 secs
 	m_pPlayer->m_DieTick = Server()->Tick();
 
+	m_pPlayer->m_DeadPosActive = true;
+	m_pPlayer->m_DeadPos = m_Pos;
+	m_pPlayer->m_DeadRespawnTime = Killer == m_pPlayer->GetCID() ? 10 : 5;
+	m_pPlayer->m_DeadSpecMode = true;
+
 	GameWorld()->RemoveEntity(this);
 	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCID());
+
+	CCharacter* pClosest = nullptr;
+	int ClosestRange = -1;
+	for(CCharacter *pChr = (CCharacter *) GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER); pChr; pChr = (CCharacter *) pChr->TypeNext())
+ 	{
+		if(pChr == this)
+			continue;
+
+		float Len = distance(m_Pos, pChr->m_Pos);
+		if(ClosestRange == -1 || Len < ClosestRange)
+		{
+			ClosestRange = Len;
+			pClosest = pChr;
+		}
+	}
+	if(Killer != m_pPlayer->GetCID())
+		m_pPlayer->SetSpectatorID(SPEC_PLAYER, Killer);
+	else if(pClosest)
+		m_pPlayer->SetSpectatorID(SPEC_PLAYER, pClosest->GetPlayer()->GetCID());
 }
 
 bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weapon)

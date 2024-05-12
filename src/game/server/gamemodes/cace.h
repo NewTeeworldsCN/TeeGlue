@@ -63,6 +63,7 @@ public:
     void ResetGame() override;
     void Snap(int SnappingClient) override;
 	void OnCharacterSpawn(class CCharacter *pChr) override;
+    void OnPlayerConnect(class CPlayer *pPlayer) override;
 
 	bool DoWincheckMatch() override;
     bool OnEntity(int Index, vec2 Pos) override;

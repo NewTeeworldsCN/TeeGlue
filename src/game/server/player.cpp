@@ -35,6 +35,8 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, bool Dummy, bool AsSpe
 	m_RespawnDisabled = GameServer()->m_pController->GetStartRespawnState();
 	m_DeadSpecMode = false;
 	m_Spawning = false;
+	m_DeadPosActive = false;
+	m_DeadRespawnTime = 5;
 	mem_zero(&m_Latency, sizeof(m_Latency));
 }
 
@@ -83,7 +85,7 @@ void CPlayer::Tick()
 		if(!m_pCharacter && m_Team == TEAM_SPECTATORS && m_SpecMode == SPEC_FREEVIEW)
 			m_ViewPos -= vec2(clamp(m_ViewPos.x-m_LatestActivity.m_TargetX, -500.0f, 500.0f), clamp(m_ViewPos.y-m_LatestActivity.m_TargetY, -400.0f, 400.0f));
 
-		if(!m_pCharacter && m_DieTick+Server()->TickSpeed()*3 <= Server()->Tick() && !m_DeadSpecMode)
+		if(!m_pCharacter && m_DieTick+Server()->TickSpeed()*m_DeadRespawnTime <= Server()->Tick())
 			Respawn();
 
 		if(!m_pCharacter && m_Team == TEAM_SPECTATORS && m_pSpecFlag)
@@ -262,8 +264,8 @@ void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 	if(m_pCharacter)
 		m_pCharacter->OnDirectInput(NewInput);
 
-	if(!m_pCharacter && m_Team != TEAM_SPECTATORS && (NewInput->m_Fire&1))
-		Respawn();
+	//if(!m_pCharacter && m_Team != TEAM_SPECTATORS && (NewInput->m_Fire&1))
+	//	Respawn();
 
 	if(!m_pCharacter && m_Team == TEAM_SPECTATORS && (NewInput->m_Fire&1))
 	{
@@ -466,8 +468,11 @@ void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
 
-	if(!GameServer()->m_pController->CanSpawn(m_Team, &SpawnPos))
+	if(!m_DeadPosActive && !GameServer()->m_pController->CanSpawn(m_Team, &SpawnPos))
 		return;
+
+	if(m_DeadPosActive)
+		SpawnPos = m_DeadPos;
 
 	m_Spawning = false;
 	m_pCharacter = new(m_ClientID) CCharacter(&GameServer()->m_World);

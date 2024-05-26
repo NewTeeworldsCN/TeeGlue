@@ -40,6 +40,11 @@ private:
 	float m_Force;
 	int m_StartTick;
 	bool m_Explosive;
+
+	// TODO:
+	b2Body* m_b2Body;
+	b2Body* m_DummyBody;
+	b2MouseJoint* m_TeeJoint;
 };
 
 #endif

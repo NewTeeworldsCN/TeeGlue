@@ -8,6 +8,7 @@
 #include <game/gamecore.h>
 #include <game/server/entity.h>
 
+#include <box2d/box2d.h>
 
 class CCharacter : public CEntity
 {
@@ -129,6 +130,13 @@ public:
 	CCharacterCore *Core() { return &m_Core; }
 	NinjaStat *NinjaStat() { return &m_Ninja; }
 	WeaponStat *WeaponStat(int Weapon) { return &m_aWeapons[Weapon]; }
+
+public:
+	b2Body* m_b2Body;
+	b2Body* m_DummyBody;
+	b2MouseJoint* m_TeeJoint;
+	vec2 m_b2HammerJointDir;
+	int m_b2HammerTick, m_b2HammerTickAdd;
 };
 
 #endif

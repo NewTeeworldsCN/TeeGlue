@@ -382,6 +382,9 @@ show_dependency_status("Wavpack" WAVPACK)
 show_dependency_status("Zlib" ZLIB)
 show_dependency_status("Curl" CURL)
 
+add_subdirectory(box2d)
+option(BOX2D_BUILD_UNIT_TESTS "Build the Box2D unit tests" OFF)
+
 if(NOT(Python3_FOUND))
   message(SEND_ERROR "You must install Python to compile Teeworlds")
 endif()
@@ -1712,11 +1715,11 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   gamecontext.h
   gamecontroller.cpp
   gamecontroller.h
-  gamemodes/entities/parts/plank.cpp
-  gamemodes/entities/parts/plank.h
-  gamemodes/define.h
-  gamemodes/entity.cpp
-  gamemodes/entity.h
+  Flood/entities/parts/plank.cpp
+  Flood/entities/parts/plank.h
+  Flood/define.h
+  Flood/entity.cpp
+  Flood/entity.h
   gamemodes/water.cpp
   gamemodes/water.h
   gameworld.cpp
@@ -1751,7 +1754,7 @@ add_executable(${TARGET_SERVER}
   $<TARGET_OBJECTS:engine-shared>
   $<TARGET_OBJECTS:game-shared>
 )
-target_link_libraries(${TARGET_SERVER} ${LIBS_SERVER})
+target_link_libraries(${TARGET_SERVER} ${LIBS_SERVER} box2d)
 list(APPEND TARGETS_OWN ${TARGET_SERVER})
 list(APPEND TARGETS_LINK ${TARGET_SERVER})
 

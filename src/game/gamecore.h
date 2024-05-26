@@ -120,6 +120,23 @@ inline T SaturatedAdd(T Min, T Max, T Current, T Modifier)
 
 float VelocityRamp(float Value, float Start, float Range, float Curvature);
 
+// By headshot2017
+inline void Rotate(vec2* vertex, float x_orig, float y_orig, float angle)
+{
+	// FUCK THIS MATH
+	float s = sin(angle);
+	float c = cos(angle);
+
+	vertex->x -= x_orig;
+	vertex->y -= y_orig;
+
+	float xnew = vertex->x * c - vertex->y * s;
+	float ynew = vertex->x * s + vertex->y * c;
+
+	vertex->x = xnew + x_orig;
+	vertex->y = ynew + y_orig;
+}
+
 // hooking stuff
 enum
 {

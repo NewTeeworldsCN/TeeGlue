@@ -23,12 +23,47 @@ CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, 
 	m_StartTick = Server()->Tick();
 	m_Explosive = Explosive;
 
+	// box2d
+	b2BodyDef BodyDef;
+    BodyDef.position = b2Vec2(m_Pos.x / 30.f, (m_Pos.y / 30.f) + 2);
+    BodyDef.type = b2_dynamicBody;
+    m_b2Body = GameServer()->m_pB2World->CreateBody(&BodyDef);
+
+    b2CircleShape Shape;
+    Shape.m_radius = 30 / 2 / 30.f;
+    b2FixtureDef FixtureDef;
+    FixtureDef.density = 1.f;
+    FixtureDef.shape = &Shape;
+    m_b2Body->CreateFixture(&FixtureDef);
+
+    // dummy body
+    b2BodyDef dBodyDef;
+    m_DummyBody = GameServer()->m_pB2World->CreateBody(&dBodyDef);
+
+    b2MouseJointDef def;
+    def.bodyA = m_DummyBody;
+    def.bodyB = m_b2Body;
+    def.target = BodyDef.position;
+    def.maxForce = 100000;
+    def.damping = 0;
+    def.stiffness = 100000;
+    def.collideConnected = true;
+
+    m_TeeJoint = (b2MouseJoint *)GameServer()->m_pB2World->CreateJoint(&def);
+    m_b2Body->SetAwake(true);
+
 	GameWorld()->InsertEntity(this);
 }
 
 void CProjectile::Reset()
 {
 	GameWorld()->DestroyEntity(this);
+	if (m_b2Body)
+        GameServer()->m_pB2World->DestroyBody(m_b2Body);
+    if (m_DummyBody)
+        GameServer()->m_pB2World->DestroyBody(m_DummyBody);
+    m_b2Body = 0;
+    m_DummyBody = 0;
 }
 
 void CProjectile::LoseOwner()
@@ -78,6 +113,16 @@ void CProjectile::Tick()
 
 	m_LifeSpan--;
 
+	m_TeeJoint->SetTarget(b2Vec2(CurPos.x / SCALE, CurPos.y / SCALE));
+	BodyCollideQuery queryCallback;
+	b2Vec2 b2Pos(CurPos.x / 30.f, CurPos.y / 30.f);
+	queryCallback.Body = 0;
+	queryCallback.findPos = b2Pos;
+	b2AABB aabb;
+	aabb.lowerBound = b2Vec2(b2Pos.x - 0.001, b2Pos.y - 0.001);
+	aabb.upperBound = b2Vec2(b2Pos.x + 0.001, b2Pos.y + 0.001);
+	GameServer()->m_pB2World->QueryAABB(&queryCallback, aabb);
+
 	if(TargetChr || Collide || m_LifeSpan < 0 || GameLayerClipped(CurPos))
 	{
 		if(m_LifeSpan >= 0 || m_Weapon == WEAPON_GRENADE)
@@ -118,5 +163,13 @@ void CProjectile::Snap(int SnappingClient)
 	CNetObj_Projectile Proj;
 	FillInfo(&Proj);
 	if(!NetConverter()->SnapNewItemConvert(&Proj, this, NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile), SnappingClient))
+		return;
+
+	CNetObj_Laser pB2Body;
+    pB2Body.m_FromX = pB2Body.m_X = m_b2Body->GetPosition().x * 30.f;
+    pB2Body.m_FromY = pB2Body.m_Y = m_b2Body->GetPosition().y * 30.f;
+    pB2Body.m_StartTick = Server()->Tick();
+
+	if(!NetConverter()->SnapNewItemConvert(&pB2Body, this, NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser), SnappingClient))
 		return;
 }

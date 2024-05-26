@@ -14,6 +14,12 @@
 #include "eventhandler.h"
 #include "gameworld.h"
 
+#include <box2d/box2d.h>
+
+#include <vector>
+
+#define SCALE 30
+
 /*
 	Tick
 		Game Context (CGameContext::tick)
@@ -35,6 +41,27 @@
 			All players (CPlayer::snap)
 
 */
+
+class BodyCollideQuery : public b2QueryCallback
+{
+public:
+	b2Body *Body;
+	b2Vec2 findPos;
+
+	bool ReportFixture(b2Fixture *fixture)
+	{
+		b2Shape *shape = fixture->GetShape();
+		bool inside = shape->TestPoint(fixture->GetBody()->GetTransform(), findPos);
+
+		if (inside)
+		{
+			Body = fixture->GetBody();
+			return false;
+		}
+		return true;
+	}
+};
+
 class CGameContext : public IGameServer
 {
 	IServer *m_pServer;
@@ -75,6 +102,7 @@ class CGameContext : public IGameServer
 	static void ComLanguage(IConsole::IResult *pResult, void *pContext);
 	static void ComWhisper(IConsole::IResult *pResult, void *pContext);
 	static void ComReady(IConsole::IResult *pResult, void *pContext);
+	static void ComTestCreateBox(IConsole::IResult *pResult, void *pContext);
 
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
@@ -216,6 +244,15 @@ public:
 #ifdef CONF_DDNETMASTER
 	void OnUpdatePlayerServerInfo(char *aBuf, int BufSize, int ID) override;
 #endif
+
+public:
+	b2World *m_pB2World;
+	std::vector<class CPartsPlank *> m_vpB2Bodies;
+	std::vector<b2Body *> m_vpB2Explosions;
+
+	void HandleBox2D();
+	void CreateGround(vec2 Pos, int Type = 0);
+	void CreatePlank(vec2 Pos, vec2 Size);
 };
 
 inline int64 CmaskAll() { return -1; }

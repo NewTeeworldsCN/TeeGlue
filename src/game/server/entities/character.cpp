@@ -80,6 +80,36 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 
 	GameServer()->m_pController->OnCharacterSpawn(this);
 
+	// box2d
+    b2BodyDef BodyDef;
+    BodyDef.position = b2Vec2(m_Pos.x / 30.f, (m_Pos.y / 30.f) + 2);
+    BodyDef.type = b2_dynamicBody;
+    m_b2Body = GameServer()->m_pB2World->CreateBody(&BodyDef);
+
+    b2CircleShape Shape;
+    Shape.m_radius = 30 / 2 / 30.f;
+    b2FixtureDef FixtureDef;
+    FixtureDef.density = 1.f;
+    FixtureDef.shape = &Shape;
+    m_b2Body->CreateFixture(&FixtureDef);
+
+    // dummy body
+    b2BodyDef dBodyDef;
+    m_DummyBody = GameServer()->m_pB2World->CreateBody(&dBodyDef);
+
+    b2MouseJointDef def;
+    def.bodyA = m_DummyBody;
+    def.bodyB = m_b2Body;
+    def.target = BodyDef.position;
+    def.maxForce = 100000;
+    def.damping = 4;
+    def.stiffness = 100000;
+    def.collideConnected = true;
+
+    m_TeeJoint = (b2MouseJoint *)GameServer()->m_pB2World->CreateJoint(&def);
+    m_b2Body->SetAwake(true);
+
+    m_b2HammerTick = m_b2HammerTickAdd = 0;
 	return true;
 }
 
@@ -87,6 +117,12 @@ void CCharacter::Destroy()
 {
 	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 	m_Alive = false;
+	if (m_b2Body)
+        GameServer()->m_pB2World->DestroyBody(m_b2Body);
+    if (m_DummyBody)
+        GameServer()->m_pB2World->DestroyBody(m_DummyBody);
+    m_b2Body = 0;
+    m_DummyBody = 0;
 }
 
 void CCharacter::SetWeapon(int W)
@@ -329,6 +365,10 @@ void CCharacter::FireWeapon()
 			// if we Hit anything, we have to wait for the reload
 			if(Hits)
 				m_ReloadTimer = Server()->TickSpeed()/3;
+
+			m_b2HammerTick = 0;
+        	m_b2HammerTickAdd = 10;
+        	m_b2HammerJointDir = Direction;
 
 		} break;
 
@@ -637,6 +677,21 @@ void CCharacter::TickDefered()
 			m_ReckoningCore = m_Core;
 		}
 	}
+
+	b2Vec2 pos(m_Core.m_Pos.x / SCALE, m_Core.m_Pos.y / SCALE);
+    if (m_TeeJoint)
+    {
+        pos.x += ((m_b2HammerTick)*m_b2HammerJointDir.x) / SCALE;
+        pos.y += ((m_b2HammerTick)*m_b2HammerJointDir.y) / SCALE;
+
+        m_b2HammerTick += m_b2HammerTickAdd;
+        if (m_b2HammerTick >= 60)
+            m_b2HammerTickAdd = -20;
+        else if (m_b2HammerTick == 0)
+            m_b2HammerTickAdd = 0;
+
+        m_TeeJoint->SetTarget(pos);
+    }
 }
 
 void CCharacter::TickPaused()
@@ -723,6 +778,13 @@ void CCharacter::Die(int Killer, int Weapon)
 	GameWorld()->RemoveEntity(this);
 	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCID());
+
+	if (m_b2Body)
+        GameServer()->m_pB2World->DestroyBody(m_b2Body);
+    if (m_DummyBody)
+        GameServer()->m_pB2World->DestroyBody(m_DummyBody);
+    m_b2Body = 0;
+    m_DummyBody = 0;
 }
 
 bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weapon)
@@ -880,6 +942,14 @@ void CCharacter::Snap(int SnappingClient)
 	}
 	
 	if(!NetConverter()->SnapNewItemConvert(&Character, this, NETOBJTYPE_CHARACTER, m_pPlayer->GetCID(), sizeof(CNetObj_Character), SnappingClient))
+		return;
+
+	CNetObj_Laser pB2Body;
+    pB2Body.m_FromX = pB2Body.m_X = m_b2Body->GetPosition().x * 30.f;
+    pB2Body.m_FromY = pB2Body.m_Y = m_b2Body->GetPosition().y * 30.f;
+    pB2Body.m_StartTick = Server()->Tick();
+
+	if(!NetConverter()->SnapNewItemConvert(&pB2Body, this, NETOBJTYPE_LASER, m_pPlayer->GetCID(), sizeof(CNetObj_Laser), SnappingClient))
 		return;
 }
 

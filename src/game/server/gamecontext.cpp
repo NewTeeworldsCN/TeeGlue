@@ -22,10 +22,25 @@
 #include "localization.h"
 #include "player.h"
 
+#include "Flood/entities/parts/plank.h"
+
 enum
 {
 	RESET,
 	NO_RESET
+};
+
+class MyQueryCallback : public b2QueryCallback
+{
+public:
+	bool ReportFixture(b2Fixture *fixture)
+	{
+		b2Body *body = fixture->GetBody();
+		body->SetAwake(true);
+
+		// Return true to continue the query.
+		return true;
+	}
 };
 
 void CGameContext::Construct(int Resetting)
@@ -46,6 +61,16 @@ void CGameContext::Construct(int Resetting)
 
 	if(Resetting==NO_RESET)
 		m_pVoteOptionHeap = new CHeap();
+
+	b2AABB worldAABB;
+	worldAABB.lowerBound.Set(0, 0);
+	worldAABB.upperBound.Set(Collision()->GetHeight(), Collision()->GetWidth());
+	b2Vec2 gravity(0.f, 15.f);
+
+	MyQueryCallback callback;
+
+	m_pB2World = new b2World(gravity);
+	m_pB2World->QueryAABB(&callback, worldAABB);
 }
 
 CGameContext::CGameContext(int Resetting)
@@ -73,6 +98,12 @@ void CGameContext::Clear()
 	CVoteOptionServer *pVoteOptionLast = m_pVoteOptionLast;
 	int NumVoteOptions = m_NumVoteOptions;
 	CTuningParams Tuning = m_Tuning;
+
+	if (m_pB2World)
+	{
+		delete m_pB2World;
+		m_pB2World = NULL;
+	}
 
 	m_Resetting = true;
 	this->~CGameContext();
@@ -148,6 +179,42 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamag
 		float Factor = 1 - clamp((l-InnerRadius)/(Radius-InnerRadius), 0.0f, 1.0f);
 		if((int)(Factor * MaxDamage))
 			apEnts[i]->TakeDamage(Force * Factor, Diff*-1, (int)(Factor * MaxDamage), Owner, Weapon);
+	}
+
+	// apply force to box2d objects
+	b2Vec2 b2Pos(Pos.x / 30.f, Pos.y / 30.f);
+	b2Vec2 b2Rad((Radius) / 30.f, (Radius) / 30.f);
+	float Strength = 4;
+
+	int numRays = 32;
+	for (int i = 0; i < numRays; i++)
+	{
+		float angle = ((i / (float)numRays) * 360) / 180.f * b2_pi;
+		b2Vec2 rayDir(sinf(angle), cosf(angle));
+
+		// use a "particle" system, essentially very tiny circles, that hits objects at high speeds
+		b2BodyDef bd;
+		bd.type = b2_dynamicBody;
+		bd.fixedRotation = true; // don't rotate
+		bd.bullet = true;		 // avoid tunneling at high speed
+		bd.linearDamping = 10;	 // slow down
+		bd.gravityScale = 0;	 // don't be affected by gravity
+		bd.position = b2Pos;
+		bd.linearVelocity = (Strength * 30.f) * rayDir;
+		b2Body *body = m_pB2World->CreateBody(&bd);
+
+		b2CircleShape circle;
+		circle.m_radius = 0.05; // ok so basically i'm very... you get the drill
+
+		b2FixtureDef fd;
+		fd.shape = &circle;
+		fd.density = 60 / (float)numRays;
+		fd.friction = 0;
+		fd.restitution = 0.99f;
+		fd.filter.groupIndex = -1;
+		body->CreateFixture(&fd);
+
+		m_vpB2Explosions.push_back(body);
 	}
 }
 
@@ -599,6 +666,7 @@ void CGameContext::OnTick()
 		}
 	}
 
+	HandleBox2D();
 
 #ifdef CONF_DEBUG
 	for(int i = 0; i < MAX_CLIENTS; i++)
@@ -1723,6 +1791,25 @@ void CGameContext::ComReady(IConsole::IResult *pResult, void *pContext)
 	pSelf->m_pController->OnPlayerReadyChange(pPlayer);
 }
 
+// TODO: Remove this command, it just for test.
+// AND, /plank asdsd 你好 = Crash, so remove this command after test.
+void CGameContext::ComTestCreateBox(IConsole::IResult *pResult, void *pContext)
+{
+	CCommandManager::SCommandContext *pComContext = (CCommandManager::SCommandContext *)pContext;
+	CGameContext *pSelf = (CGameContext *)pComContext->m_pContext;
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[pComContext->m_ClientID];
+	if(!pPlayer->GetCharacter() || pResult->NumArguments() != 2)
+	{
+		int Code = pSelf->Server()->GetClientLanguage(pComContext->m_ClientID);
+		pSelf->SendChat(-1, CHAT_WHISPER, pComContext->m_ClientID, Localize(Code, "Wrong, need 2 args (Width, Height)"));
+		return;
+	}
+	vec2 Size(pResult->GetInteger(0), pResult->GetInteger(1));
+	pSelf->CreatePlank(pPlayer->GetCharacter()->GetPos(), Size);
+}
+
+
 void CGameContext::OnInit()
 {
 	// init everything
@@ -1759,6 +1846,8 @@ void CGameContext::OnInit()
 	CommandManager()->AddCommand("r", "Switch your ready state", "", ComReady, this);
 	CommandManager()->AddCommand("ready", "Switch your ready state", "", ComReady, this);
 
+	CommandManager()->AddCommand("plank", "Create a Plank for test", "?i[Width] ?i[Height]", ComTestCreateBox, this);
+
 	// create all entities from the game layer
 	CMapItemLayerTilemap *pTileMap = m_Layers.GameLayer();
 	CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(pTileMap->m_Data);
@@ -1767,6 +1856,17 @@ void CGameContext::OnInit()
 		for(int x = 0; x < pTileMap->m_Width; x++)
 		{
 			int Index = pTiles[y*pTileMap->m_Width+x].m_Index;
+			vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
+
+			switch (pTiles[y*pTileMap->m_Width+x].m_Reserved)
+			{
+				case TILE_SOLID:
+				case TILE_NOHOOK:
+				{
+					if (!Collision()->CheckPoint(Pos.x, Pos.y + 32) || !Collision()->CheckPoint(Pos.x, Pos.y - 32) || !Collision()->CheckPoint(Pos.x + 32, Pos.y) || !Collision()->CheckPoint(Pos.x - 32, Pos.y))
+						CreateGround(Pos);
+				}
+			}
 
 			if(Index >= ENTITY_OFFSET)
 			{
@@ -1807,6 +1907,15 @@ void CGameContext::OnInit()
 
 void CGameContext::OnShutdown()
 {
+	b2Body *node = m_pB2World->GetBodyList();
+	while (node)
+	{
+		b2Body *b = node;
+		node = node->GetNext();
+
+		m_pB2World->DestroyBody(b);
+	}
+
 	delete m_pController;
 	m_pController = 0;
 	Clear();
@@ -2127,3 +2236,43 @@ void CGameContext::OnUpdatePlayerServerInfo(char *aBuf, int BufSize, int ID)
 		m_apPlayers[ID]->GetTeam());
 }
 #endif
+
+void CGameContext::HandleBox2D()
+{
+	if (m_pB2World)
+	{
+		m_pB2World->Step(1. / 30, 8, 3);
+		for (unsigned i = 0; i < m_vpB2Explosions.size(); i++)
+		{
+			if (m_vpB2Explosions[i]->GetLinearVelocity().x < 5.f and m_vpB2Explosions[i]->GetLinearVelocity().y < 5.f) // delete
+			{
+				m_pB2World->DestroyBody(m_vpB2Explosions[i]);
+				m_vpB2Explosions.erase(m_vpB2Explosions.begin() + i);
+				--i;
+			}
+		}
+	}
+}
+
+void CGameContext::CreateGround(vec2 Pos, int Type)
+{
+	vec2 size(32, 32);
+	float angle = 180 * b2_pi;
+	b2BodyDef groundBodyDef;
+	groundBodyDef.angle = angle;
+	groundBodyDef.position = b2Vec2(Pos.x / 30, Pos.y / 30);
+	groundBodyDef.type = b2_kinematicBody;
+	b2Body *ground = m_pB2World->CreateBody(&groundBodyDef);
+
+	b2PolygonShape Shape;
+	Shape.SetAsBox(size.x / 2 / 30, size.y / 2 / 30);
+	b2FixtureDef FixtureDef;
+	FixtureDef.density = 0;
+	FixtureDef.shape = &Shape;
+	ground->CreateFixture(&FixtureDef);
+}
+
+void CGameContext::CreatePlank(vec2 Pos, vec2 Size)
+{
+	m_vpB2Bodies.push_back(new CPartsPlank((CGameControllerWater *)m_pController, Pos, vec2(0, 0), Size, m_pB2World));
+}

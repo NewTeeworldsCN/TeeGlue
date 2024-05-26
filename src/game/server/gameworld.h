@@ -25,6 +25,7 @@ public:
 		ENTTYPE_FLAG,
 
 		ENTTYPE_BOMB,
+		ENTTYPE_DSB,
 		NUM_ENTTYPES
 	};
 

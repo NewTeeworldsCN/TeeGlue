@@ -15,6 +15,8 @@ enum ECaceDefine
     WEAPON_WAVEBOMB,
     WEAPON_TELELASER,
     WEAPON_HEALBOMB,
+    // Death Scythe Blade
+    WEAPON_DSB, 
 
     NUM_CASEITEMS,
 };
@@ -55,6 +57,7 @@ class CGameControllerCace : public IGameController
     void OnPlayerSwitchItem(int Weapon, int ClientID);
 
 	static void ComSwitch(IConsole::IResult *pResult, void *pContext);
+
 public:
     CGameControllerCace(class CGameContext *pGameServer);
     ~CGameControllerCace();
@@ -64,6 +67,7 @@ public:
     void Snap(int SnappingClient) override;
 	void OnCharacterSpawn(class CCharacter *pChr) override;
     void OnPlayerConnect(class CPlayer *pPlayer) override;
+    void OnPlayerEmoticon(class CPlayer *pPlayer, int Emoticon) override;
 
 	bool DoWincheckMatch() override;
     bool OnEntity(int Index, vec2 Pos) override;
@@ -76,18 +80,21 @@ private:
     void PickupWaveBombTick(SPickupInfo *pPickupInfo);
     void PickupTeleLaserTick(SPickupInfo *pPickupInfo);
     void PickupHealBombTick(SPickupInfo *pPickupInfo);
+    void PickupDSBTick(SPickupInfo *pPickupInfo);
 
     // item tick
     void ItemBombTick(int ClientID);
     void ItemWaveBombTick(int ClientID);
     void ItemTeleLaserTick(int ClientID);
     void ItemHealBombTick(int ClientID);
+    void ItemDSBTick(int ClientID);
 
     // pickup snap
     void PickupBombSnap(int SnappingClient, SPickupInfo *pPickupInfo);
     void PickupWaveBombSnap(int SnappingClient, SPickupInfo *pPickupInfo);
     void PickupTeleLaserSnap(int SnappingClient, SPickupInfo *pPickupInfo);
     void PickupHealBombSnap(int SnappingClient, SPickupInfo *pPickupInfo);
+    void PickupDSBSnap(int SnappingClient, SPickupInfo *pPickupInfo);
 };
 
 #endif // GAME_SERVER_GAMEMODES_CACE_H

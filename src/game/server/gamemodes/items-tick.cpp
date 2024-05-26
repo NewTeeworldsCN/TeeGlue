@@ -6,6 +6,7 @@
 
 #include <game/server/entities/bomb.h>
 #include <game/server/entities/character.h>
+#include <game/server/entities/dsb.h>
 #include <game/server/entities/dropped-pickup.h>
 #include <game/server/entities/pickup.h>
 #include <game/server/entities/projectile.h>
@@ -22,10 +23,11 @@ static const char* GetCaceItemName(int Type)
 {
 	switch (Type)
 	{
-		case WEAPON_BOMB: return FormatLocalize("Bomb");
-		case WEAPON_WAVEBOMB: return FormatLocalize("Wave Bomb");
-		case WEAPON_TELELASER: return FormatLocalize("Tele Laser");
-        case WEAPON_HEALBOMB: return FormatLocalize("Heal Bomb");
+		case ECaceDefine::WEAPON_BOMB: return FormatLocalize("Bomb");
+		case ECaceDefine::WEAPON_WAVEBOMB: return FormatLocalize("Wave Bomb");
+		case ECaceDefine::WEAPON_TELELASER: return FormatLocalize("Tele Laser");
+        case ECaceDefine::WEAPON_HEALBOMB: return FormatLocalize("Heal Bomb");
+        case ECaceDefine::WEAPON_DSB: return FormatLocalize("Death Scythe Blade");
 	}
 	return "null";
 }
@@ -38,6 +40,7 @@ void CGameControllerCace::CacePickupTick(int Type, SPickupInfo *pPickupInfo)
         case ECaceDefine::WEAPON_WAVEBOMB: PickupWaveBombTick(pPickupInfo); break;
         case ECaceDefine::WEAPON_TELELASER: PickupTeleLaserTick(pPickupInfo); break;
         case ECaceDefine::WEAPON_HEALBOMB: PickupHealBombTick(pPickupInfo); break;
+        case ECaceDefine::WEAPON_DSB: PickupDSBTick(pPickupInfo); break;
 	}
 }
 
@@ -49,6 +52,7 @@ void CGameControllerCace::CaceItemTick(int Type, int ClientID)
 		case ECaceDefine::WEAPON_WAVEBOMB: ItemWaveBombTick(ClientID); break;
         case ECaceDefine::WEAPON_TELELASER: ItemTeleLaserTick(ClientID); break;
 		case ECaceDefine::WEAPON_HEALBOMB: ItemHealBombTick(ClientID); break;
+        case ECaceDefine::WEAPON_DSB: ItemDSBTick(ClientID); break;
 	}
 }
 
@@ -71,6 +75,10 @@ void CGameControllerCace::GetPossibleItem(int Weapon, int ClientID, std::vector<
             if(m_aCacePlayersInventory[ClientID].count(ECaceDefine::WEAPON_HEALBOMB) && 
                     m_aCacePlayersInventory[ClientID][ECaceDefine::WEAPON_HEALBOMB])
 			    vPossibleItems.push_back(ECaceDefine::WEAPON_HEALBOMB);
+
+            if(m_aCacePlayersInventory[ClientID].count(ECaceDefine::WEAPON_DSB) && 
+                    m_aCacePlayersInventory[ClientID][ECaceDefine::WEAPON_DSB])
+			    vPossibleItems.push_back(ECaceDefine::WEAPON_DSB);
 		}
 		break;
 		case WEAPON_GUN:
@@ -363,6 +371,33 @@ void CGameControllerCace::PickupHealBombTick(SPickupInfo *pPickupInfo)
         }
     }
 }
+
+void CGameControllerCace::PickupDSBTick(SPickupInfo *pPickupInfo)
+{
+    for(CCharacter *pChr = (CCharacter *) GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER); pChr; pChr = (CCharacter *) pChr->TypeNext())
+    {
+        if(!pChr->IsAlive())
+            continue;
+
+        float Len = distance(pChr->GetPos(), pPickupInfo->m_Pos);
+        if(Len < pChr->GetProximityRadius() + 24.0f)
+        {
+            int Num = random_int() % 4 + 2; // 2 ~ 5
+            pPickupInfo->m_PickedTick = Server()->Tick();
+            GameServer()->CreateSound(pPickupInfo->m_Pos, SOUND_GUN_FIRE);
+            GameServer()->SendChatLocalize(-1, CHAT_ALL, pChr->GetPlayer()->GetCID(), 
+                FormatLocalize("You picked death scythe blade x%d!!"), Num);
+
+            if(!m_aCacePlayersInventory[pChr->GetPlayer()->GetCID()].count(ECaceDefine::WEAPON_DSB))
+                m_aCacePlayersInventory[pChr->GetPlayer()->GetCID()][ECaceDefine::WEAPON_DSB] = 0;
+            m_aCacePlayersInventory[pChr->GetPlayer()->GetCID()][ECaceDefine::WEAPON_DSB] += Num;
+
+            RefreshItem(pChr->GetPlayer()->GetCID());
+            // no more
+            return;
+        }
+    }
+}
 // Items
 void CGameControllerCace::ItemBombTick(int ClientID)
 {
@@ -480,6 +515,29 @@ void CGameControllerCace::ItemHealBombTick(int ClientID)
     }
 
     m_aCacePlayersInventory[ClientID][ECaceDefine::WEAPON_HEALBOMB] --;
+
+    RefreshItem(ClientID);
+}
+
+void CGameControllerCace::ItemDSBTick(int ClientID)
+{
+    CCharacter *pChr = GameServer()->GetPlayerChar(ClientID);
+    if(!pChr)
+    {
+        return;
+    }
+
+    if(pChr->ActiveWeapon() != WEAPON_HAMMER || !pChr->IsFired())
+    {
+        return;
+    }
+
+    vec2 Direction = normalize(vec2(pChr->LatestInput()->m_TargetX, pChr->LatestInput()->m_TargetY));
+    vec2 ProjStartPos = pChr->GetPos() + Direction * pChr->GetProximityRadius() * 0.75f;
+
+    new CDSB(&GameServer()->m_World, ClientID, ProjStartPos, Direction);
+
+    m_aCacePlayersInventory[ClientID][ECaceDefine::WEAPON_DSB] --;
 
     RefreshItem(ClientID);
 }

@@ -176,6 +176,8 @@ public:
 
 	virtual void OnReset();
 
+	virtual void OnPlayerEmoticon(class CPlayer *pPlayer, int Emoticon) {};
+
 	// game
 	enum
 	{

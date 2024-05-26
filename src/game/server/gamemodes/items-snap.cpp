@@ -36,6 +36,7 @@ void CGameControllerCace::SnapCacePickup(int SnappingClient, int Type, SPickupIn
 		case ECaceDefine::WEAPON_WAVEBOMB: PickupWaveBombSnap(SnappingClient, pPickupInfo); break;
 		case ECaceDefine::WEAPON_TELELASER: PickupTeleLaserSnap(SnappingClient, pPickupInfo); break;
 		case ECaceDefine::WEAPON_HEALBOMB: PickupHealBombSnap(SnappingClient, pPickupInfo); break;
+		case ECaceDefine::WEAPON_DSB: PickupDSBSnap(SnappingClient, pPickupInfo); break;
 	}
 }
 
@@ -183,5 +184,41 @@ void CGameControllerCace::PickupHealBombSnap(int SnappingClient, SPickupInfo *pP
 
         if(!NetConverter()->SnapNewItemConvert(&Proj, this, NETOBJTYPE_PROJECTILE, pPickupInfo->m_SnapIDs[1 + i], sizeof(CNetObj_Projectile), SnappingClient))
         return;
+    }
+}
+
+void CGameControllerCace::PickupDSBSnap(int SnappingClient, SPickupInfo *pPickupInfo)
+{
+    {
+        CNetObj_Pickup Pickup;
+
+        Pickup.m_Type = PICKUP_HAMMER;
+
+        Pickup.m_X = pPickupInfo->m_Pos.x;
+        Pickup.m_Y = pPickupInfo->m_Pos.y;
+
+        if(!NetConverter()->SnapNewItemConvert(&Pickup, this, NETOBJTYPE_PICKUP, pPickupInfo->m_SnapIDs[0], sizeof(CNetObj_Pickup), SnappingClient))
+            return;
+    }
+
+    // infclass
+    float time = (Server()->Tick()-m_GameStartTick)/(float)Server()->TickSpeed()*4.0f;
+    float Angle = fmodf(time*pi/2, 2.0f*pi);
+    for(int i = 0; i < 4; i ++)
+    {
+        float FromShiftedAngle = Angle + 2.0*pi*static_cast<float>(i)/static_cast<float>(4);
+        float ToShiftedAngle = Angle + 2.0*pi*static_cast<float>((i + 1) % 4)/static_cast<float>(4);
+
+        CNetObj_Laser Laser;
+
+        Laser.m_StartTick = m_GameStartTick;
+
+        Laser.m_FromX = (int)(pPickupInfo->m_Pos.x + 32.0f * cos(FromShiftedAngle));
+        Laser.m_FromY = (int)(pPickupInfo->m_Pos.y + 32.0f * sin(FromShiftedAngle));
+        Laser.m_X = (int)(pPickupInfo->m_Pos.x + 32.0f * cos(ToShiftedAngle));
+        Laser.m_Y = (int)(pPickupInfo->m_Pos.y + 32.0f * sin(ToShiftedAngle));
+
+        if(!NetConverter()->SnapNewItemConvert(&Laser, this, NETOBJTYPE_LASER, pPickupInfo->m_SnapIDs[1 + i], sizeof(CNetObj_Laser), SnappingClient))
+            return;
     }
 }

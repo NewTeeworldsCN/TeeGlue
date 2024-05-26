@@ -25,6 +25,7 @@ static int GetEntitySnapIDNum(int Type)
 		case WEAPON_WAVEBOMB: 
 		case WEAPON_TELELASER:
 		case WEAPON_HEALBOMB:
+		case WEAPON_DSB:
 			return 5;
 	}
 	return 1;
@@ -39,6 +40,8 @@ static int GetEntityRespawnTime(int Type)
 			return 12;
 		case WEAPON_TELELASER:
 			return 20;
+		case WEAPON_DSB:
+			return 45;
 	}
 	return 15;
 }
@@ -177,7 +180,7 @@ void CGameControllerCace::OnCharacterSpawn(class CCharacter *pChr)
 	pChr->GiveWeapon(WEAPON_GRENADE, 5);
 	pChr->GiveWeapon(WEAPON_LASER, 0);
 
-	GameServer()->SendChatLocalize(-1, CHAT_ALL, pChr->GetPlayer()->GetCID(), FormatLocalize("Type /s or /switch to switch your item!"));
+	GameServer()->SendChatLocalize(-1, CHAT_ALL, pChr->GetPlayer()->GetCID(), FormatLocalize("Type /s, /switch or send emoticon to switch your item!"));
 }
 
 void CGameControllerCace::OnPlayerConnect(CPlayer *pPlayer)
@@ -197,6 +200,18 @@ void CGameControllerCace::OnPlayerConnect(CPlayer *pPlayer)
 		GameServer()->SendChatLocalize(-1, CHAT_ALL, ClientID, FormatLocalize("Race was already start! Hurry up! Be the first finisher!\nIf someone around you! Kill him!\nDo not let others kill you!"));
 		GameServer()->SendBroadcastLocalize(FormatLocalize("Race was already start! Hurry up! Be the first finisher!\nIf someone around you! Kill him!\nDo not let others kill you!"), ClientID);
 	}
+}
+
+void CGameControllerCace::OnPlayerEmoticon(class CPlayer *pPlayer, int Emoticon)
+{
+	if(!pPlayer->GetCharacter())
+		return;
+
+	int ClientID = pPlayer->GetCID();
+
+	m_aaPlayerSwitchCase[ClientID][pPlayer->GetCharacter()->ActiveWeapon()] ++;
+
+	OnPlayerSwitchItem(pPlayer->GetCharacter()->ActiveWeapon(), ClientID);
 }
 
 bool CGameControllerCace::DoWincheckMatch()

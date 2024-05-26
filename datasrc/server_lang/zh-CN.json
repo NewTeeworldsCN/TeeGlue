@@ -105,6 +105,10 @@
 		"value": "炸弹"
 	},
 	{
+		"key": "Death Scythe Blade",
+		"value": "死亡镰刀刃"
+	},
+	{
 		"key": "Game aborted",
 		"value": "游戏中止"
 	},
@@ -169,8 +173,8 @@
 		"value": "红队旗帜被 '%s' 夺取（%.2f秒）"
 	},
 	{
-		"key": "Type /s or /switch to switch your item!",
-		"value": "聊天框输入/s或者/switch切换你的物品!"
+		"key": "Type /s, /switch or send emoticon to switch your item!",
+		"value": "输入/s,/switch或者发送表情以切换你的物品!"
 	},
 	{
 		"key": "Use hammer to throw it!",
@@ -219,6 +223,10 @@
 	{
 		"key": "You picked a heal bomb!",
 		"value": "你捡到了治疗炸弹!"
+	},
+	{
+		"key": "You picked death scythe blade x%d!!",
+		"value": "你捡到了%d个死亡镰刀刃!"
 	},
 	{
 		"key": "You picked tele laser x%d!!",

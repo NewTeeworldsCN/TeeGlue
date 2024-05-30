@@ -944,6 +944,7 @@ void CCharacter::Snap(int SnappingClient)
 	if(!NetConverter()->SnapNewItemConvert(&Character, this, NETOBJTYPE_CHARACTER, m_pPlayer->GetCID(), sizeof(CNetObj_Character), SnappingClient))
 		return;
 
+	// TODO: Remove this
 	CNetObj_Laser pB2Body;
     pB2Body.m_FromX = pB2Body.m_X = m_b2Body->GetPosition().x * 30.f;
     pB2Body.m_FromY = pB2Body.m_Y = m_b2Body->GetPosition().y * 30.f;

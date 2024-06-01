@@ -17,6 +17,7 @@
 
 #include "entities/character.h"
 #include "entities/projectile.h"
+#include "gamemodes/entities/parts/plank.h"
 #include "gamemodes/flood.h"
 #include "gamecontext.h"
 #include "localization.h"
@@ -1723,6 +1724,22 @@ void CGameContext::ComReady(IConsole::IResult *pResult, void *pContext)
 	pSelf->m_pController->OnPlayerReadyChange(pPlayer);
 }
 
+void CGameContext::ComTestCreateBox(IConsole::IResult *pResult, void *pContext)
+{
+	CCommandManager::SCommandContext *pComContext = (CCommandManager::SCommandContext *)pContext;
+	CGameContext *pSelf = (CGameContext *)pComContext->m_pContext;
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[pComContext->m_ClientID];
+	if(!pPlayer->GetCharacter() || pResult->NumArguments() != 2)
+	{
+		int Code = pSelf->Server()->GetClientLanguage(pComContext->m_ClientID);
+		pSelf->SendChat(-1, CHAT_WHISPER, pComContext->m_ClientID, Localize(Code, "Wrong, need 2 args (Width, Height)"));
+		return;
+	}
+	vec2 Size(pResult->GetInteger(0), pResult->GetInteger(1));
+	new CPartsPlank((CGameControllerFlood *) pSelf->m_pController, pPlayer->GetCharacter()->GetPos(), Size, 0.0f);
+}
+
 void CGameContext::OnInit()
 {
 	// init everything
@@ -1758,6 +1775,8 @@ void CGameContext::OnInit()
 
 	CommandManager()->AddCommand("r", "Switch your ready state", "", ComReady, this);
 	CommandManager()->AddCommand("ready", "Switch your ready state", "", ComReady, this);
+
+	CommandManager()->AddCommand("plank", "Test plank", "?i[width] ?i[height]", ComTestCreateBox, this);
 
 	// create all entities from the game layer
 	CMapItemLayerTilemap *pTileMap = m_Layers.GameLayer();

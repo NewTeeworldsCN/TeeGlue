@@ -1717,7 +1717,7 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   gamemodes/define.h
   gamemodes/entity.cpp
   gamemodes/entity.h
-  gamemodes/water.cpp
+  gamemodes/flood.cpp
   gamemodes/flood.h
   gameworld.cpp
   gameworld.h

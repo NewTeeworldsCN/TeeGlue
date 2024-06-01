@@ -5,6 +5,23 @@
 
 #include <base/vmath.h>
 
+// By headshot2017
+inline void Rotate(vec2* vertex, float x_orig, float y_orig, float angle)
+{
+	// FUCK THIS MATH
+	float s = sin(angle);
+	float c = cos(angle);
+
+	vertex->x -= x_orig;
+	vertex->y -= y_orig;
+
+	float xnew = vertex->x * c - vertex->y * s;
+	float ynew = vertex->x * s + vertex->y * c;
+
+	vertex->x = xnew + x_orig;
+	vertex->y = ynew + y_orig;
+}
+
 class CCollision
 {
 	struct CTile *m_pTiles;
@@ -33,7 +50,9 @@ public:
 	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision) const;
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces) const;
 	void MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity, bool *pDeath=0) const;
+	void MoveBoxAngle(vec2 *pInoutPos, vec2 *pInoutVel, float *pInoutAngle, vec2 Size, float Elasticity, bool *pDeath=0) const;
 	bool TestBox(vec2 Pos, vec2 Size, int Flag=COLFLAG_SOLID) const;
+	bool TestBoxAngle(vec2 Pos, vec2 Size, float Angle, int Flag=COLFLAG_SOLID) const;
 };
 
 #endif

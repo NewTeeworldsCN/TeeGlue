@@ -5,15 +5,23 @@
 
 class CPartsPlank : public CModEntity
 {
-    vec2 m_Direction;
-    int m_Length;
+    vec2 m_Size;
+    vec2 m_Vel;
+    float m_RotateVel;
+    float m_Angle;
+
+    int m_aIDs[4];
 public:
-	CPartsPlank(CGameControllerFlood *pController, vec2 Pos, vec2 Direction, int Length);
+	CPartsPlank(CGameControllerFlood *pController, vec2 Pos, vec2 Size, float Angle);
+    ~CPartsPlank();
 
-    void DoMove();
+    void DoPhysic();
+
     void Tick() override;
+    void Snap(int SnappingClient) override;
 
-    int Length() const { return m_Length; }
+    vec2 Size() const { return m_Size; }
+    float Angle() const { return m_Angle; }
 };
 
 #endif // GAME_SERVER_GAMEMODES_ENTITIES_PLANK_H

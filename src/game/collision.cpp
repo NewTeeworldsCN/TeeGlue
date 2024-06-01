@@ -132,23 +132,39 @@ void CCollision::MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, i
 
 bool CCollision::TestBox(vec2 Pos, vec2 Size, int Flag) const
 {
-	Size *= 0.5f;
-	if(CheckPoint(Pos.x-Size.x, Pos.y-Size.y, Flag))
-		return true;
-	if(CheckPoint(Pos.x+Size.x, Pos.y-Size.y, Flag))
-		return true;
-	if(CheckPoint(Pos.x-Size.x, Pos.y+Size.y, Flag))
-		return true;
-	if(CheckPoint(Pos.x+Size.x, Pos.y+Size.y, Flag))
-		return true;
+	return TestBoxAngle(Pos, Size, 0.f, Flag);
+}
+
+bool CCollision::TestBoxAngle(vec2 Pos, vec2 Size, float Angle, int Flag) const
+{
+	vec2 Vertices[4] = {
+		vec2(Pos.x - (Size.x / 2), Pos.y - (Size.y / 2)),
+		vec2(Pos.x + (Size.x / 2), Pos.y - (Size.y / 2)),
+		vec2(Pos.x + (Size.x / 2), Pos.y + (Size.y / 2)),
+		vec2(Pos.x - (Size.x / 2), Pos.y + (Size.y / 2))
+	};
+
+	for(int i = 0; i < 4; i++)
+	{
+		Rotate(&Vertices[i], Pos.x, Pos.y, Angle);
+		if(CheckPoint(Vertices[i], Flag))
+			return true;
+	}
 	return false;
 }
 
 void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity, bool *pDeath) const
 {
+	float Angle = 0.f;
+	MoveBoxAngle(pInoutPos, pInoutVel, &Angle, Size, Elasticity, pDeath);
+}
+
+void CCollision::MoveBoxAngle(vec2 *pInoutPos, vec2 *pInoutVel, float *pInoutAngle, vec2 Size, float Elasticity, bool *pDeath) const
+{
 	// do the move
 	vec2 Pos = *pInoutPos;
 	vec2 Vel = *pInoutVel;
+	float Angle = *pInoutAngle;
 
 	const float Distance = length(Vel);
 	const int Max = (int)Distance;
@@ -165,23 +181,23 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elas
 
 			//You hit a deathtile, congrats to that :)
 			//Deathtiles are a bit smaller
-			if(pDeath && TestBox(vec2(NewPos.x, NewPos.y), Size*(2.0f/3.0f), COLFLAG_DEATH))
+			if(pDeath && TestBoxAngle(vec2(NewPos.x, NewPos.y), Size*(2.0f/3.0f), Angle, COLFLAG_DEATH))
 			{
 				*pDeath = true;
 			}
 
-			if(TestBox(vec2(NewPos.x, NewPos.y), Size))
+			if(TestBoxAngle(vec2(NewPos.x, NewPos.y), Size, Angle))
 			{
 				int Hits = 0;
 
-				if(TestBox(vec2(Pos.x, NewPos.y), Size))
+				if(TestBoxAngle(vec2(Pos.x, NewPos.y), Size, Angle))
 				{
 					NewPos.y = Pos.y;
 					Vel.y *= -Elasticity;
 					Hits++;
 				}
 
-				if(TestBox(vec2(NewPos.x, Pos.y), Size))
+				if(TestBoxAngle(vec2(NewPos.x, Pos.y), Size, Angle))
 				{
 					NewPos.x = Pos.x;
 					Vel.x *= -Elasticity;
@@ -205,4 +221,5 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elas
 
 	*pInoutPos = Pos;
 	*pInoutVel = Vel;
+	*pInoutAngle = Angle;
 }

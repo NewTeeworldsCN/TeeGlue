@@ -76,6 +76,8 @@ class CGameContext : public IGameServer
 	static void ComWhisper(IConsole::IResult *pResult, void *pContext);
 	static void ComReady(IConsole::IResult *pResult, void *pContext);
 
+	static void ComTestCreateBox(IConsole::IResult *pResult, void *pContext);
+
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
 

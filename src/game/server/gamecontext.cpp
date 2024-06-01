@@ -17,7 +17,7 @@
 
 #include "entities/character.h"
 #include "entities/projectile.h"
-#include "gamemodes/water.h"
+#include "gamemodes/flood.h"
 #include "gamecontext.h"
 #include "localization.h"
 #include "player.h"
@@ -1746,7 +1746,7 @@ void CGameContext::OnInit()
 	m_Layers.Init(Kernel());
 	m_Collision.Init(&m_Layers);
 
-	m_pController = new CGameControllerWater(this);
+	m_pController = new CGameControllerFlood(this);
 
 	m_pController->RegisterChatCommands(CommandManager());
 

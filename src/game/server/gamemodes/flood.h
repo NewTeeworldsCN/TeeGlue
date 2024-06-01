@@ -3,10 +3,10 @@
 
 #include <game/server/gamecontroller.h>
 
-class CGameControllerWater : public IGameController
+class CGameControllerFlood : public IGameController
 {
 public:
-	CGameControllerWater(class CGameContext *pGameServer);
+	CGameControllerFlood(class CGameContext *pGameServer);
 
 	class CGameWorld *GameWorld();
 

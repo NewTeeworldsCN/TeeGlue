@@ -5,13 +5,13 @@
 
 class CModEntity : public CEntity
 {
-    class CGameControllerWater *m_pController;
+    class CGameControllerFlood *m_pController;
 
     int m_ModType;
 public:
-	CModEntity(CGameControllerWater *pController, int Objtype, vec2 Pos, int ProximityRadius = 0);
+	CModEntity(CGameControllerFlood *pController, int Objtype, vec2 Pos, int ProximityRadius = 0);
 
-	class CGameControllerWater *Controller() { return m_pController; }
+	class CGameControllerFlood *Controller() { return m_pController; }
     int ModType() const { return m_ModType; }
 };
 

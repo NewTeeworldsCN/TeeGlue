@@ -5,9 +5,9 @@
 #include <game/collision.h>
 
 #include "plank.h"
-#include "water.h"
+#include "flood.h"
 
-CPartsPlank::CPartsPlank(CGameControllerWater *pController, vec2 Pos, vec2 Direction, int Length) :
+CPartsPlank::CPartsPlank(CGameControllerFlood *pController, vec2 Pos, vec2 Direction, int Length) :
     CModEntity(pController, EModEntityType::MODENTTYPE_PARTS_PLANK, Pos)
 {
     m_Length = Length;

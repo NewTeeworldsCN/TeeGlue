@@ -1,7 +1,7 @@
 #include "entity.h"
-#include "water.h"
+#include "flood.h"
 
-CModEntity::CModEntity(CGameControllerWater *pController, int Objtype, vec2 Pos, int ProximityRadius = 0) :
+CModEntity::CModEntity(CGameControllerFlood *pController, int Objtype, vec2 Pos, int ProximityRadius = 0) :
     CEntity(pController->GameWorld(), CGameWorld::ENTTYPE_MOD, Pos, ProximityRadius),
     m_pController(pController)
 {

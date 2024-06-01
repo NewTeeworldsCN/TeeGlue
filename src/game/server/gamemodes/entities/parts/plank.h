@@ -8,7 +8,7 @@ class CPartsPlank : public CModEntity
     vec2 m_Direction;
     int m_Length;
 public:
-	CPartsPlank(CGameControllerWater *pController, vec2 Pos, vec2 Direction, int Length);
+	CPartsPlank(CGameControllerFlood *pController, vec2 Pos, vec2 Direction, int Length);
 
     void DoMove();
     void Tick() override;

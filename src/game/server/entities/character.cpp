@@ -524,6 +524,8 @@ void CCharacter::ResetInput()
 
 void CCharacter::Tick()
 {
+	GameServer()->m_pController->ExtraCharacterTick(this);
+
 	m_Core.m_Input = m_Input;
 	m_Core.Tick(true);
 
@@ -886,4 +888,9 @@ void CCharacter::Snap(int SnappingClient)
 void CCharacter::PostSnap()
 {
 	m_TriggeredEvents = 0;
+}
+
+bool CCharacter::IsAttacked()
+{
+	return m_AttackTick == Server()->Tick() - 1; 
 }

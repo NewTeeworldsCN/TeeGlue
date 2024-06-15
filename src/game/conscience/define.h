@@ -1,0 +1,25 @@
+#ifndef GAME_CONSCIENCE_DEFINE_H
+#define GAME_CONSCIENCE_DEFINE_H
+
+enum ECMapItem
+{
+	TILE_WATER = 9,
+
+	ENTITY_SPAWN_JUSTICE = 2,
+	ENTITY_SPAWN_MONSTER,
+};
+
+enum ECCollisionFlag
+{
+	/*
+		class CCollision:
+		{
+			COLFLAG_SOLID=1,
+			COLFLAG_DEATH=2,
+			COLFLAG_NOHOOK=4,
+		}
+	*/
+	COLFLAG_WATER = 1 << 3,
+};
+
+#endif // GAME_SERVER_CONSCIENCE_DEFINE_H

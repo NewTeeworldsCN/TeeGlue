@@ -129,6 +129,9 @@ public:
 	CCharacterCore *Core() { return &m_Core; }
 	NinjaStat *NinjaStat() { return &m_Ninja; }
 	WeaponStat *WeaponStat(int Weapon) { return &m_aWeapons[Weapon]; }
+
+	int ActiveWeapon() const { return m_ActiveWeapon; }
+	bool IsAttacked();
 };
 
 #endif

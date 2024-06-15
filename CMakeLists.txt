@@ -1443,6 +1443,7 @@ set(ENGINE_GENERATED_SHARED
 )
 
 set_src(GAME_SHARED GLOB src/game
+  conscience/define.h
   collision.cpp
   collision.h
   commands.h

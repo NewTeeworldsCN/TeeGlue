@@ -52,6 +52,11 @@ inline int random_int()
 	return ((rand() & 0x7fff) << 16) | (rand() & 0xffff);
 }
 
+inline int random_int(int min, int max)
+{
+	return random_int() % (max - min) + min;
+}
+
 inline float random_float()
 {
 	return rand() / (float)RAND_MAX;

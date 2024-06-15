@@ -6,6 +6,7 @@
 
 // TODO: remove this
 #include "././game/variables.h"
+#include "././game/conscience/variables.h"
 
 
 MACRO_CONFIG_UTF8STR(PlayerName, player_name, MAX_NAME_ARRAY_SIZE, MAX_NAME_LENGTH, "nameless tee", CFGFLAG_SAVE|CFGFLAG_CLIENT, "Name of the player")

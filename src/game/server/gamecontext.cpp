@@ -15,6 +15,7 @@
 
 #include "entities/character.h"
 #include "entities/projectile.h"
+#include "gamemodes/dm.h"
 #include "gamemodes/ocean.h"
 #include "gamecontext.h"
 #include "localization.h"
@@ -1825,7 +1826,10 @@ void CGameContext::OnInit()
 	m_Layers.Init(Kernel());
 	m_Collision.Init(&m_Layers);
 
-	m_pController = new CGameControllerOcean(this);
+	if(str_comp_nocase(Config()->m_SvGametype, "dm") == 0)
+		m_pController = new CGameControllerDM(this);
+	else
+		m_pController = new CGameControllerOcean(this);
 
 	m_pController->RegisterChatCommands(CommandManager());
 

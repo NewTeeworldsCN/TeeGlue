@@ -1712,6 +1712,8 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   gamecontext.h
   gamecontroller.cpp
   gamecontroller.h
+  gamemodes/dm.cpp
+  gamemodes/dm.h
   gamemodes/ocean.cpp
   gamemodes/ocean.h
   gameworld.cpp

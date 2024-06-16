@@ -12,6 +12,8 @@ public:
 
     // override
     bool IsFriendlyFire(int ClientID1, int ClientID2) const override;
+
+    void Tick();
 };
 
 #endif // GAME_SERVER_GAMEMODES_OCEAN_H

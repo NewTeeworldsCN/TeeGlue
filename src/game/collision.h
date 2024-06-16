@@ -28,6 +28,7 @@ public:
 		COLFLAG_DEATH=2,
 		COLFLAG_NOHOOK=4,
 		COLFLAG_WATER=8,
+		TILEFLAG_CANNON=16,
 	};
 
 	CCollision();

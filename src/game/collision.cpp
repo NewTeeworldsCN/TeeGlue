@@ -59,6 +59,9 @@ void CCollision::Init(class CLayers *pLayers)
 		case TILE_WATER:
 			m_pTiles[i].m_Index = COLFLAG_WATER;
 			break;
+		case TILE_CANNNON:
+			m_pTiles[i].m_Index = TILEFLAG_CANNON;
+			break;
 		default:
 			m_pTiles[i].m_Index = 0;
 		}

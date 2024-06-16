@@ -129,6 +129,10 @@ public:
 	CCharacterCore *Core() { return &m_Core; }
 	NinjaStat *NinjaStat() { return &m_Ninja; }
 	WeaponStat *WeaponStat(int Weapon) { return &m_aWeapons[Weapon]; }
+
+	bool IsAttacked();
+	void SetQueuedWeapon(int Weapon) { m_QueuedWeapon = Weapon; }
+	void SetReloadTimer(int Timer) { m_ReloadTimer = Timer; }
 };
 
 #endif

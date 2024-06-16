@@ -955,3 +955,8 @@ void CCharacter::PostSnap()
 {
 	m_TriggeredEvents = 0;
 }
+
+bool CCharacter::IsAttacked()
+{
+	return m_AttackTick == Server()->Tick() - 1;
+}

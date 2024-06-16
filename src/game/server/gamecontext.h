@@ -76,6 +76,14 @@ class CGameContext : public IGameServer
 	static void ComWhisper(IConsole::IResult *pResult, void *pContext);
 	static void ComReady(IConsole::IResult *pResult, void *pContext);
 
+    static void ConSetWaterSpeed(IConsole::IResult *pResult, void *pUserData);
+    static void ConSetMirrorAreaWidth(IConsole::IResult *pResult, void *pUserData);
+    static void ConSetMirrorAreaHeight(IConsole::IResult *pResult, void *pUserData);
+    static void ConSetMirrorAreaX(IConsole::IResult *pResult, void *pUserData);
+    static void ConSetMirrorAreaY(IConsole::IResult *pResult, void *pUserData);
+    static void ConSetMirrorAreaGoX(IConsole::IResult *pResult, void *pUserData);
+    static void ConSetMirrorAreaGoY(IConsole::IResult *pResult, void *pUserData);
+
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
 
@@ -88,6 +96,17 @@ public:
 	class INetConverter *NetConverter() { return m_pNetConverter; }
 	CCollision *Collision() { return &m_Collision; }
 	CTuningParams *Tuning() { return &m_Tuning; }
+
+    struct SMirrorAreaInfo
+    {
+        vec2 m_Pos;
+        vec2 m_Size;
+        vec2 m_Go;
+    };
+
+    std::map<unsigned int, SMirrorAreaInfo> m_MirrorAreaInfos;
+
+	int m_WaterSpeed;
 
 	CGameContext();
 	~CGameContext();
@@ -142,12 +161,12 @@ public:
 	CVoteOptionServer *m_pVoteOptionLast;
 
 	// helper functions
-	void CreateDamage(vec2 Pos, int Id, vec2 Source, int HealthAmount, int ArmorAmount, bool Self);
-	void CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage);
-	void CreateHammerHit(vec2 Pos);
-	void CreatePlayerSpawn(vec2 Pos);
-	void CreateDeath(vec2 Pos, int Who);
-	void CreateSound(vec2 Pos, int Sound, int64 Mask=-1);
+	void CreateDamage(vec2 Pos, int Id, vec2 Source, int HealthAmount, int ArmorAmount, bool Self, int Area);
+	void CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage, int Area);
+	void CreateHammerHit(vec2 Pos, int Area);
+	void CreatePlayerSpawn(vec2 Pos, int Area);
+	void CreateDeath(vec2 Pos, int Who, int Area);
+	void CreateSound(vec2 Pos, int Sound, int64 Mask=-1, int Area = -1);
 
 	// network
 	void SendChat(int ChatterClientID, int Mode, int To, const char *pText);

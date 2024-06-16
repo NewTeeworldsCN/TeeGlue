@@ -15,12 +15,7 @@
 
 #include "entities/character.h"
 #include "entities/projectile.h"
-#include "gamemodes/ctf.h"
-#include "gamemodes/dm.h"
-#include "gamemodes/lms.h"
-#include "gamemodes/lts.h"
-#include "gamemodes/mod.h"
-#include "gamemodes/tdm.h"
+#include "gamemodes/ocean.h"
 #include "gamecontext.h"
 #include "localization.h"
 #include "player.h"
@@ -46,6 +41,8 @@ void CGameContext::Construct(int Resetting)
 	m_pVoteOptionLast = 0;
 	m_NumVoteOptions = 0;
 	m_LockTeams = 0;
+
+	m_WaterSpeed = 0;
 
 	if(Resetting==NO_RESET)
 		m_pVoteOptionHeap = new CHeap();
@@ -97,10 +94,10 @@ class CCharacter *CGameContext::GetPlayerChar(int ClientID)
 	return m_apPlayers[ClientID]->GetCharacter();
 }
 
-void CGameContext::CreateDamage(vec2 Pos, int Id, vec2 Source, int HealthAmount, int ArmorAmount, bool Self)
+void CGameContext::CreateDamage(vec2 Pos, int Id, vec2 Source, int HealthAmount, int ArmorAmount, bool Self, int Area)
 {
 	float f = angle(Source);
-	CNetEvent_Damage *pEvent = (CNetEvent_Damage *)m_Events.Create(NETEVENTTYPE_DAMAGE, sizeof(CNetEvent_Damage));
+	CNetEvent_Damage *pEvent = (CNetEvent_Damage *)m_Events.Create(NETEVENTTYPE_DAMAGE, sizeof(CNetEvent_Damage), -1LL, Area);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -113,10 +110,10 @@ void CGameContext::CreateDamage(vec2 Pos, int Id, vec2 Source, int HealthAmount,
 	}
 }
 
-void CGameContext::CreateHammerHit(vec2 Pos)
+void CGameContext::CreateHammerHit(vec2 Pos, int Area)
 {
 	// create the event
-	CNetEvent_HammerHit *pEvent = (CNetEvent_HammerHit *)m_Events.Create(NETEVENTTYPE_HAMMERHIT, sizeof(CNetEvent_HammerHit));
+	CNetEvent_HammerHit *pEvent = (CNetEvent_HammerHit *)m_Events.Create(NETEVENTTYPE_HAMMERHIT, sizeof(CNetEvent_HammerHit), -1LL, Area);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -125,10 +122,10 @@ void CGameContext::CreateHammerHit(vec2 Pos)
 }
 
 
-void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage)
+void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage, int Area)
 {
 	// create the event
-	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion));
+	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), -1LL, Area);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -140,10 +137,15 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamag
 	float Radius = g_pData->m_Explosion.m_Radius;
 	float InnerRadius = 48.0f;
 	float MaxForce = g_pData->m_Explosion.m_MaxForce;
-	int Num = m_World.FindEntities(Pos, Radius, (CEntity**)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+	int Num = m_World.FindEntities(Pos, Radius, (CEntity**)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, Area);
 	for(int i = 0; i < Num; i++)
 	{
-		vec2 Diff = apEnts[i]->GetPos() - Pos;
+		vec2 TargetPos = apEnts[i]->GetPos();
+		TargetPos -= apEnts[i]->Core()->m_AreaGo;
+		if(m_MirrorAreaInfos.count(Area))
+			TargetPos += m_MirrorAreaInfos[Area].m_Go;
+
+		vec2 Diff = TargetPos - Pos;
 		vec2 Force(0, MaxForce);
 		float l = length(Diff);
 		if(l)
@@ -154,10 +156,10 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamag
 	}
 }
 
-void CGameContext::CreatePlayerSpawn(vec2 Pos)
+void CGameContext::CreatePlayerSpawn(vec2 Pos, int Area)
 {
 	// create the event
-	CNetEvent_Spawn *ev = (CNetEvent_Spawn *)m_Events.Create(NETEVENTTYPE_SPAWN, sizeof(CNetEvent_Spawn));
+	CNetEvent_Spawn *ev = (CNetEvent_Spawn *)m_Events.Create(NETEVENTTYPE_SPAWN, sizeof(CNetEvent_Spawn), -1LL, Area);
 	if(ev)
 	{
 		ev->m_X = (int)Pos.x;
@@ -165,10 +167,10 @@ void CGameContext::CreatePlayerSpawn(vec2 Pos)
 	}
 }
 
-void CGameContext::CreateDeath(vec2 Pos, int ClientID)
+void CGameContext::CreateDeath(vec2 Pos, int ClientID, int Area)
 {
 	// create the event
-	CNetEvent_Death *pEvent = (CNetEvent_Death *)m_Events.Create(NETEVENTTYPE_DEATH, sizeof(CNetEvent_Death));
+	CNetEvent_Death *pEvent = (CNetEvent_Death *)m_Events.Create(NETEVENTTYPE_DEATH, sizeof(CNetEvent_Death), -1LL, Area);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -177,13 +179,13 @@ void CGameContext::CreateDeath(vec2 Pos, int ClientID)
 	}
 }
 
-void CGameContext::CreateSound(vec2 Pos, int Sound, int64 Mask)
+void CGameContext::CreateSound(vec2 Pos, int Sound, int64 Mask, int Area)
 {
 	if (Sound < 0)
 		return;
 
 	// create a sound
-	CNetEvent_SoundWorld *pEvent = (CNetEvent_SoundWorld *)m_Events.Create(NETEVENTTYPE_SOUNDWORLD, sizeof(CNetEvent_SoundWorld), Mask);
+	CNetEvent_SoundWorld *pEvent = (CNetEvent_SoundWorld *)m_Events.Create(NETEVENTTYPE_SOUNDWORLD, sizeof(CNetEvent_SoundWorld), Mask, Area);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -1600,6 +1602,86 @@ void CGameContext::ConchainGameinfoUpdate(IConsole::IResult *pResult, void *pUse
 	}
 }
 
+void CGameContext::ConSetWaterSpeed(IConsole::IResult *pResult, void *pUserData)
+{
+    CGameContext *pSelf = (CGameContext *) pUserData;
+    int Speed = pResult->GetInteger(0);
+    
+    pSelf->m_WaterSpeed = Speed;
+}
+
+void CGameContext::ConSetMirrorAreaWidth(IConsole::IResult *pResult, void *pUserData)
+{
+    CGameContext *pSelf = (CGameContext *) pUserData;
+    int Number = pResult->GetInteger(0);
+    int Width = pResult->GetInteger(1);
+    
+    if(Number < 0 || Number > 255)
+        return;
+
+    pSelf->m_MirrorAreaInfos[Number].m_Size.x = Width * 32; // block size
+}
+
+void CGameContext::ConSetMirrorAreaHeight(IConsole::IResult *pResult, void *pUserData)
+{
+    CGameContext *pSelf = (CGameContext *) pUserData;
+    int Number = pResult->GetInteger(0);
+    int Height = pResult->GetInteger(1);
+    
+    if(Number < 0 || Number > 255)
+        return;
+
+    pSelf->m_MirrorAreaInfos[Number].m_Size.y = Height * 32; // block size
+}
+
+void CGameContext::ConSetMirrorAreaX(IConsole::IResult *pResult, void *pUserData)
+{
+    CGameContext *pSelf = (CGameContext *) pUserData;
+    int Number = pResult->GetInteger(0);
+    int X = pResult->GetInteger(1);
+    
+    if(Number < 0 || Number > 255)
+        return;
+
+    pSelf->m_MirrorAreaInfos[Number].m_Pos.x = X; // block size
+}
+
+void CGameContext::ConSetMirrorAreaY(IConsole::IResult *pResult, void *pUserData)
+{
+    CGameContext *pSelf = (CGameContext *) pUserData;
+    int Number = pResult->GetInteger(0);
+    int Y = pResult->GetInteger(1);
+    
+    if(Number < 0 || Number > 255)
+        return;
+
+    pSelf->m_MirrorAreaInfos[Number].m_Pos.y = Y; // block size
+}
+
+void CGameContext::ConSetMirrorAreaGoX(IConsole::IResult *pResult, void *pUserData)
+{
+    CGameContext *pSelf = (CGameContext *) pUserData;
+    int Number = pResult->GetInteger(0);
+    int X = pResult->GetInteger(1);
+    
+    if(Number < 0 || Number > 255)
+        return;
+
+    pSelf->m_MirrorAreaInfos[Number].m_Go.x = X; // block size
+}
+
+void CGameContext::ConSetMirrorAreaGoY(IConsole::IResult *pResult, void *pUserData)
+{
+    CGameContext *pSelf = (CGameContext *) pUserData;
+    int Number = pResult->GetInteger(0);
+    int Y = pResult->GetInteger(1);
+    
+    if(Number < 0 || Number > 255)
+        return;
+
+    pSelf->m_MirrorAreaInfos[Number].m_Go.y = Y; // block size
+}
+
 void CGameContext::OnConsoleInit()
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
@@ -1626,6 +1708,14 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("remove_vote", "s[option]", CFGFLAG_SERVER, ConRemoveVote, this, "remove a voting option");
 	Console()->Register("clear_votes", "", CFGFLAG_SERVER, ConClearVotes, this, "Clears the voting options");
 	Console()->Register("vote", "r['yes'|'no']", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
+	
+	Console()->Register("set_water_speed_x", "i[speed]", CFGFLAG_SERVER, ConSetWaterSpeed, this, "set water speed");
+	Console()->Register("set_mirror_area_width", "i[number] i[width]", CFGFLAG_SERVER, ConSetMirrorAreaWidth, this, "set mirror area's width (block)");
+    Console()->Register("set_mirror_area_height", "i[number] i[height]", CFGFLAG_SERVER, ConSetMirrorAreaHeight, this, "set mirror area's height (block)");
+    Console()->Register("set_mirror_area_x", "i[number] i[x]", CFGFLAG_SERVER, ConSetMirrorAreaX, this, "set mirror area start x");
+    Console()->Register("set_mirror_area_y", "i[number] i[y]", CFGFLAG_SERVER, ConSetMirrorAreaY, this, "set mirror area start y");
+    Console()->Register("set_mirror_area_go_x", "i[number] i[x]", CFGFLAG_SERVER, ConSetMirrorAreaGoX, this, "set mirror area go x");
+    Console()->Register("set_mirror_area_go_y", "i[number] i[y]", CFGFLAG_SERVER, ConSetMirrorAreaGoY, this, "set mirror area go y");
 }
 
 void CGameContext::NewCommandHook(const CCommandManager::CCommand *pCommand, void *pContext)
@@ -1735,19 +1825,7 @@ void CGameContext::OnInit()
 	m_Layers.Init(Kernel());
 	m_Collision.Init(&m_Layers);
 
-	// select gametype
-	if(str_comp_nocase(Config()->m_SvGametype, "mod") == 0)
-		m_pController = new CGameControllerMOD(this);
-	else if(str_comp_nocase(Config()->m_SvGametype, "ctf") == 0)
-		m_pController = new CGameControllerCTF(this);
-	else if(str_comp_nocase(Config()->m_SvGametype, "lms") == 0)
-		m_pController = new CGameControllerLMS(this);
-	else if(str_comp_nocase(Config()->m_SvGametype, "lts") == 0)
-		m_pController = new CGameControllerLTS(this);
-	else if(str_comp_nocase(Config()->m_SvGametype, "tdm") == 0)
-		m_pController = new CGameControllerTDM(this);
-	else
-		m_pController = new CGameControllerDM(this);
+	m_pController = new CGameControllerOcean(this);
 
 	m_pController->RegisterChatCommands(CommandManager());
 
@@ -1804,6 +1882,34 @@ void CGameContext::OnInit()
 			OnClientConnected(MAX_CLIENTS -i-1, true, false);
 	}
 #endif
+	IMap *pMap = Kernel()->RequestInterface<IMap>();
+	int Start, Num;
+	pMap->GetType(MAPITEMTYPE_INFO, &Start, &Num);
+	for(int i = Start; i < Start + Num; i++)
+	{
+		int ItemId;
+		CMapItemInfoSettings *pItem = (CMapItemInfoSettings *)pMap->GetItem(i, nullptr, &ItemId);
+		int ItemSize = pMap->GetItemSize(i);
+		if(!pItem || ItemId != 0)
+			continue;
+
+		if(ItemSize < (int)sizeof(CMapItemInfoSettings))
+			break;
+		if(!(pItem->m_Settings > -1))
+			break;
+
+		int Size = pMap->GetDataSize(pItem->m_Settings);
+		char *pSettings = (char *)pMap->GetData(pItem->m_Settings);
+		char *pNext = pSettings;
+		while(pNext < pSettings + Size)
+		{
+			int StrSize = str_length(pNext) + 1;
+			Console()->ExecuteLine(pNext);
+			pNext += StrSize;
+		}
+		pMap->UnloadData(pItem->m_Settings);
+		break;
+	}
 }
 
 void CGameContext::OnShutdown()

@@ -36,6 +36,8 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, bool Dummy, bool AsSpe
 	m_DeadSpecMode = false;
 	m_Spawning = false;
 	mem_zero(&m_Latency, sizeof(m_Latency));
+
+	m_MirrorArea = -1;
 }
 
 CPlayer::~CPlayer()
@@ -471,5 +473,5 @@ void CPlayer::TryRespawn()
 	m_Spawning = false;
 	m_pCharacter = new(m_ClientID) CCharacter(&GameServer()->m_World);
 	m_pCharacter->Spawn(this, SpawnPos);
-	GameServer()->CreatePlayerSpawn(SpawnPos);
+	GameServer()->CreatePlayerSpawn(SpawnPos, m_MirrorArea);
 }

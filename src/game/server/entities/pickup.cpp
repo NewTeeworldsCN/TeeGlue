@@ -8,8 +8,8 @@
 #include "character.h"
 #include "pickup.h"
 
-CPickup::CPickup(CGameWorld *pGameWorld, int Type, vec2 Pos)
-: CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, Pos, PickupPhysSize)
+CPickup::CPickup(CGameWorld *pGameWorld, int Type, vec2 Pos, int Area)
+: CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, Pos, PickupPhysSize, Area)
 {
 	m_Type = Type;
 
@@ -37,13 +37,13 @@ void CPickup::Tick()
 			m_SpawnTick = -1;
 
 			if(m_Type == PICKUP_GRENADE || m_Type == PICKUP_SHOTGUN || m_Type == PICKUP_LASER)
-				GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN);
+				GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, CmaskAll(), m_MirrorArea);
 		}
 		else
 			return;
 	}
 	// Check if a player intersected us
-	CCharacter *pChr = (CCharacter *)GameWorld()->ClosestEntity(m_Pos, 20.0f, CGameWorld::ENTTYPE_CHARACTER, 0);
+	CCharacter *pChr = (CCharacter *)GameWorld()->ClosestEntity(m_Pos, 20.0f, CGameWorld::ENTTYPE_CHARACTER, 0, m_MirrorArea);
 	if(pChr && pChr->IsAlive() && GameServer()->m_pController->PlayerPickable(pChr->GetPlayer()->GetCID()))
 	{
 		// player picked us up, is someone was hooking us, let them go
@@ -54,7 +54,7 @@ void CPickup::Tick()
 				if(pChr->IncreaseHealth(1))
 				{
 					Picked = true;
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH);
+					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, CmaskAll(), m_MirrorArea);
 				}
 				break;
 
@@ -62,7 +62,7 @@ void CPickup::Tick()
 				if(pChr->IncreaseArmor(1))
 				{
 					Picked = true;
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR);
+					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, CmaskAll(), m_MirrorArea);
 				}
 				break;
 
@@ -70,7 +70,7 @@ void CPickup::Tick()
 				if(pChr->GiveWeapon(WEAPON_GRENADE, g_pData->m_Weapons.m_aId[WEAPON_GRENADE].m_Maxammo))
 				{
 					Picked = true;
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE);
+					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE, CmaskAll(), m_MirrorArea);
 					if(pChr->GetPlayer())
 						GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_GRENADE);
 				}
@@ -79,7 +79,7 @@ void CPickup::Tick()
 				if(pChr->GiveWeapon(WEAPON_SHOTGUN, g_pData->m_Weapons.m_aId[WEAPON_SHOTGUN].m_Maxammo))
 				{
 					Picked = true;
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN);
+					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, CmaskAll(), m_MirrorArea);
 					if(pChr->GetPlayer())
 						GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_SHOTGUN);
 				}
@@ -88,7 +88,7 @@ void CPickup::Tick()
 				if(pChr->GiveWeapon(WEAPON_LASER, g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Maxammo))
 				{
 					Picked = true;
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN);
+					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, CmaskAll(), m_MirrorArea);
 					if(pChr->GetPlayer())
 						GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_LASER);
 				}
@@ -137,14 +137,27 @@ void CPickup::TickPaused()
 
 void CPickup::Snap(int SnappingClient)
 {
-	if(m_SpawnTick != -1 || NetworkClipped(SnappingClient))
+	vec2 SnapPos = m_Pos;
+	if(SnappingClient != -1 && GameServer()->m_apPlayers[SnappingClient])
+	{
+		int SnapMirrorArea = GameServer()->m_apPlayers[SnappingClient]->m_MirrorArea;
+		int SelfMirrorArea = m_MirrorArea;
+		if(SnapMirrorArea != SelfMirrorArea)
+		{
+			if(SnapMirrorArea == -1)
+				SnapPos -= GameServer()->m_MirrorAreaInfos[SelfMirrorArea].m_Go;
+			else
+				SnapPos += GameServer()->m_MirrorAreaInfos[SnapMirrorArea].m_Go;
+		}
+	}
+	if(m_SpawnTick != -1 || NetworkClipped(SnappingClient, SnapPos))
 		return;
 
 	CNetObj_Pickup *pP = static_cast<CNetObj_Pickup *>(Server()->SnapNewItem(NETOBJTYPE_PICKUP, GetID(), sizeof(CNetObj_Pickup)));
 	if(!pP)
 		return;
 
-	pP->m_X = round_to_int(m_Pos.x);
-	pP->m_Y = round_to_int(m_Pos.y);
+	pP->m_X = round_to_int(SnapPos.x);
+	pP->m_Y = round_to_int(SnapPos.y);
 	pP->m_Type = m_Type;
 }

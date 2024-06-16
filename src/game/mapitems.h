@@ -48,6 +48,11 @@ enum
 	TILE_DEATH,
 	TILE_NOHOOK,
 
+	TILE_WATER = 9,
+
+	TILE_MIRRORIN = 26,
+	TILE_MIRROROUT,
+
 	TILEFLAG_VFLIP=1,
 	TILEFLAG_HFLIP=2,
 	TILEFLAG_OPAQUE=4,
@@ -55,6 +60,7 @@ enum
 
 	LAYERFLAG_DETAIL=1,
 	TILESLAYERFLAG_GAME=1,
+	TILESLAYERFLAG_TELE = 2,
 
 	ENTITY_OFFSET=255-16*4,
 };
@@ -88,6 +94,14 @@ struct CTile
 	unsigned char m_Flags;
 	unsigned char m_Skip;
 	unsigned char m_Reserved;
+};
+// DDRace
+
+class CTeleTile
+{
+public:
+	unsigned char m_Number;
+	unsigned char m_Type;
 };
 
 struct CMapItemInfo
@@ -168,6 +182,10 @@ struct CMapItemLayerTilemap
 	int m_Data;
 
 	int m_aName[3];
+
+	// DDRace
+
+	int m_Tele;
 } ;
 
 struct CMapItemLayerQuads
@@ -190,6 +208,11 @@ struct CMapItemVersion
 
 	int m_Version;
 } ;
+
+struct CMapItemInfoSettings : CMapItemInfo
+{
+	int m_Settings;
+};
 
 struct CEnvPoint_v1
 {

@@ -109,6 +109,8 @@ public:
 		int m_Max;
 	} m_Latency;
 
+
+	int m_MirrorArea; // -1 = null;
 private:
 	CCharacter *m_pCharacter;
 	CGameContext *m_pGameServer;

@@ -5,9 +5,13 @@
 
 #include <base/vmath.h>
 
+#include <map>
+#include <vector>
+
 class CCollision
 {
 	struct CTile *m_pTiles;
+	class CTeleTile *m_pTele;
 	int m_Width;
 	int m_Height;
 	class CLayers *m_pLayers;
@@ -15,12 +19,15 @@ class CCollision
 	bool IsTile(int x, int y, int Flag=COLFLAG_SOLID) const;
 	int GetTile(int x, int y) const;
 
+	std::map<int, std::vector<vec2>> m_TeleIns;
+	std::map<int, std::vector<vec2>> m_TeleOuts;
 public:
 	enum
 	{
 		COLFLAG_SOLID=1,
 		COLFLAG_DEATH=2,
 		COLFLAG_NOHOOK=4,
+		COLFLAG_WATER=8,
 	};
 
 	CCollision();
@@ -34,6 +41,16 @@ public:
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces) const;
 	void MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity, bool *pDeath=0) const;
 	bool TestBox(vec2 Pos, vec2 Size, int Flag=COLFLAG_SOLID) const;
+
+	const std::vector<vec2> &TeleIns(int Number) { return m_TeleIns[Number]; }
+	const std::vector<vec2> &TeleOuts(int Number) { return m_TeleOuts[Number]; }
+
+	int GetTileport(int x, int y) const;
+	int GetTileportOut(int x, int y) const;
+	int GetTileport(vec2 Pos) const { return GetTileport(Pos.x, Pos.y); }
+	int GetTileportOut(vec2 Pos) const { return GetTileportOut(Pos.x, Pos.y); }
+
+	class CTeleTile *TeleLayer() { return m_pTele; }
 };
 
 #endif

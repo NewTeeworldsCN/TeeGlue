@@ -2,12 +2,13 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <generated/server_data.h>
 #include <game/server/gamecontext.h>
+#include <game/server/player.h>
 
 #include "character.h"
 #include "laser.h"
 
-CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner)
-: CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER, Pos)
+CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, int Area)
+: CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER, Pos, 0, Area)
 {
 	m_Owner = Owner;
 	m_Energy = StartEnergy;
@@ -23,7 +24,7 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 {
 	vec2 At;
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	CCharacter *pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pOwnerChar);
+	CCharacter *pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pOwnerChar, m_MirrorArea);
 	if(!pHit)
 		return false;
 
@@ -67,7 +68,7 @@ void CLaser::DoBounce()
 			if(m_Bounces > GameServer()->Tuning()->m_LaserBounceNum)
 				m_Energy = -1;
 
-			GameServer()->CreateSound(m_Pos, SOUND_LASER_BOUNCE);
+			GameServer()->CreateSound(m_Pos, SOUND_LASER_BOUNCE, CmaskAll(), m_MirrorArea);
 		}
 	}
 	else
@@ -99,16 +100,36 @@ void CLaser::TickPaused()
 
 void CLaser::Snap(int SnappingClient)
 {
-	if(NetworkClipped(SnappingClient) && NetworkClipped(SnappingClient, m_From))
+	vec2 SnapPos = m_Pos;
+	vec2 SnapFrom = m_From;
+	if(SnappingClient != -1 && GameServer()->m_apPlayers[SnappingClient])
+	{
+		int SnapMirrorArea = GameServer()->m_apPlayers[SnappingClient]->m_MirrorArea;
+		int SelfMirrorArea = m_MirrorArea;
+		if(SnapMirrorArea != SelfMirrorArea)
+		{
+			if(SnapMirrorArea == -1)
+			{
+				SnapPos -= GameServer()->m_MirrorAreaInfos[SelfMirrorArea].m_Go;
+				SnapFrom -= GameServer()->m_MirrorAreaInfos[SelfMirrorArea].m_Go;
+			}
+			else
+			{
+				SnapPos += GameServer()->m_MirrorAreaInfos[SnapMirrorArea].m_Go;
+				SnapFrom += GameServer()->m_MirrorAreaInfos[SnapMirrorArea].m_Go;
+			}
+		}
+	}
+	if(NetworkClipped(SnappingClient, SnapPos) && NetworkClipped(SnappingClient, SnapFrom))
 		return;
 
 	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
 	if(!pObj)
 		return;
 
-	pObj->m_X = round_to_int(m_Pos.x);
-	pObj->m_Y = round_to_int(m_Pos.y);
-	pObj->m_FromX = round_to_int(m_From.x);
-	pObj->m_FromY = round_to_int(m_From.y);
+	pObj->m_X = round_to_int(SnapPos.x);
+	pObj->m_Y = round_to_int(SnapPos.y);
+	pObj->m_FromX = round_to_int(SnapFrom.x);
+	pObj->m_FromY = round_to_int(SnapFrom.y);
 	pObj->m_StartTick = m_EvalTick;
 }

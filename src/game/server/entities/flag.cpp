@@ -2,12 +2,13 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
+#include <game/server/player.h>
 
 #include "character.h"
 #include "flag.h"
 
-CFlag::CFlag(CGameWorld *pGameWorld, int Team, vec2 StandPos)
-: CEntity(pGameWorld, CGameWorld::ENTTYPE_FLAG, StandPos, ms_PhysSize)
+CFlag::CFlag(CGameWorld *pGameWorld, int Team, vec2 StandPos, int Area)
+: CEntity(pGameWorld, CGameWorld::ENTTYPE_FLAG, StandPos, ms_PhysSize, Area)
 {
 	m_Team = Team;
 	m_StandPos = StandPos;
@@ -83,14 +84,27 @@ void CFlag::TickPaused()
 
 void CFlag::Snap(int SnappingClient)
 {
-	if(NetworkClipped(SnappingClient))
+	vec2 SnapPos = m_Pos;
+	if(SnappingClient != -1 && GameServer()->m_apPlayers[SnappingClient])
+	{
+		int SnapMirrorArea = GameServer()->m_apPlayers[SnappingClient]->m_MirrorArea;
+		int SelfMirrorArea = m_MirrorArea;
+		if(SnapMirrorArea != SelfMirrorArea)
+		{
+			if(SnapMirrorArea == -1)
+				SnapPos -= GameServer()->m_MirrorAreaInfos[SelfMirrorArea].m_Go;
+			else
+				SnapPos += GameServer()->m_MirrorAreaInfos[SnapMirrorArea].m_Go;
+		}
+	}
+	if(NetworkClipped(SnappingClient, SnapPos))
 		return;
 
 	CNetObj_Flag *pFlag = (CNetObj_Flag *)Server()->SnapNewItem(NETOBJTYPE_FLAG, m_Team, sizeof(CNetObj_Flag));
 	if(!pFlag)
 		return;
 
-	pFlag->m_X = round_to_int(m_Pos.x);
-	pFlag->m_Y = round_to_int(m_Pos.y);
+	pFlag->m_X = round_to_int(SnapPos.x);
+	pFlag->m_Y = round_to_int(SnapPos.y);
 	pFlag->m_Team = m_Team;
 }

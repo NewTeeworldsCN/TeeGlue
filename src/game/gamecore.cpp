@@ -219,15 +219,19 @@ void CCharacterCore::Tick(bool UseInput)
 				if(!pCharCore || pCharCore == this)
 					continue;
 
-				vec2 ClosestPoint = closest_point_on_line(m_HookPos, NewPos, pCharCore->m_Pos);
-				if(distance(pCharCore->m_Pos, ClosestPoint) < PHYS_SIZE+2.0f)
+				vec2 EntityPos = pCharCore->m_Pos;
+				EntityPos -= pCharCore->m_AreaGo;
+				EntityPos += m_AreaGo;
+
+				vec2 ClosestPoint = closest_point_on_line(m_HookPos, NewPos, EntityPos);
+				if(distance(EntityPos, ClosestPoint) < PHYS_SIZE+2.0f)
 				{
-					if(m_HookedPlayer == -1 || distance(m_HookPos, pCharCore->m_Pos) < Distance)
+					if(m_HookedPlayer == -1 || distance(m_HookPos, EntityPos) < Distance)
 					{
 						m_TriggeredEvents |= COREEVENTFLAG_HOOK_ATTACH_PLAYER;
 						m_HookState = HOOK_GRABBED;
 						m_HookedPlayer = i;
-						Distance = distance(m_HookPos, pCharCore->m_Pos);
+						Distance = distance(m_HookPos, EntityPos);
 					}
 				}
 			}
@@ -317,9 +321,13 @@ void CCharacterCore::Tick(bool UseInput)
 			if(pCharCore == this) // || !(p->flags&FLAG_ALIVE)
 				continue; // make sure that we don't nudge our self
 
+			vec2 EntityPos = pCharCore->m_Pos;
+			EntityPos -= pCharCore->m_AreaGo;
+			EntityPos += m_AreaGo;
+
 			// handle player <-> player collision
-			float Distance = distance(m_Pos, pCharCore->m_Pos);
-			vec2 Dir = normalize(m_Pos - pCharCore->m_Pos);
+			float Distance = distance(m_Pos, EntityPos);
+			vec2 Dir = normalize(m_Pos - EntityPos);
 			if(m_pWorld->m_Tuning.m_PlayerCollision && Distance < PHYS_SIZE*1.25f && Distance > 0.0f)
 			{
 				float a = (PHYS_SIZE*1.45f - Distance);
@@ -399,12 +407,17 @@ void CCharacterCore::Move()
 				CCharacterCore *pCharCore = m_pWorld->m_apCharacters[p];
 				if(!pCharCore || pCharCore == this)
 					continue;
-				float D = distance(Pos, pCharCore->m_Pos);
+
+				vec2 EntityPos = pCharCore->m_Pos;
+				EntityPos -= pCharCore->m_AreaGo;
+				EntityPos += m_AreaGo;
+
+				float D = distance(Pos, EntityPos);
 				if(D < PHYS_SIZE && D >= 0.0f)
 				{
 					if(a > 0.0f)
 						m_Pos = LastPos;
-					else if(distance(NewPos, pCharCore->m_Pos) > D)
+					else if(distance(NewPos, EntityPos) > D)
 						m_Pos = NewPos;
 					return;
 				}

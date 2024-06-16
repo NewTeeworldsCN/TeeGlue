@@ -43,7 +43,7 @@ CEntity *CGameWorld::FindFirst(int Type)
 	return Type < 0 || Type >= NUM_ENTTYPES ? 0 : m_apFirstEntityTypes[Type];
 }
 
-int CGameWorld::FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, int Type)
+int CGameWorld::FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, int Type, int Area)
 {
 	if(Type < 0 || Type >= NUM_ENTTYPES)
 		return 0;
@@ -51,7 +51,13 @@ int CGameWorld::FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, 
 	int Num = 0;
 	for(CEntity *pEnt = m_apFirstEntityTypes[Type];	pEnt; pEnt = pEnt->m_pNextTypeEntity)
 	{
-		if(distance(pEnt->m_Pos, Pos) < Radius+pEnt->m_ProximityRadius)
+		vec2 EntityPos = pEnt->m_Pos;
+		if(GameServer()->m_MirrorAreaInfos.count(pEnt->m_MirrorArea))
+			EntityPos -= GameServer()->m_MirrorAreaInfos[pEnt->m_MirrorArea].m_Go;
+		if(GameServer()->m_MirrorAreaInfos.count(Area))
+			EntityPos += GameServer()->m_MirrorAreaInfos[Area].m_Go;
+
+		if(distance(EntityPos, Pos) < Radius+pEnt->m_ProximityRadius)
 		{
 			if(ppEnts)
 				ppEnts[Num] = pEnt;
@@ -204,7 +210,7 @@ void CGameWorld::Tick()
 
 
 // TODO: should be more general
-CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2& NewPos, CEntity *pNotThis)
+CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2& NewPos, CEntity *pNotThis, int Area)
 {
 	// Find other players
 	float ClosestLen = distance(Pos0, Pos1) * 100.0f;
@@ -216,8 +222,14 @@ CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, v
 		if(p == pNotThis)
 			continue;
 
-		vec2 IntersectPos = closest_point_on_line(Pos0, Pos1, p->m_Pos);
-		float Len = distance(p->m_Pos, IntersectPos);
+		vec2 EntityPos = p->m_Pos;
+		if(GameServer()->m_MirrorAreaInfos.count(p->m_MirrorArea))
+			EntityPos -= GameServer()->m_MirrorAreaInfos[p->m_MirrorArea].m_Go;
+		if(GameServer()->m_MirrorAreaInfos.count(Area))
+			EntityPos += GameServer()->m_MirrorAreaInfos[Area].m_Go;
+
+		vec2 IntersectPos = closest_point_on_line(Pos0, Pos1, EntityPos);
+		float Len = distance(EntityPos, IntersectPos);
 		if(Len < p->m_ProximityRadius+Radius)
 		{
 			Len = distance(Pos0, IntersectPos);
@@ -234,7 +246,7 @@ CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, v
 }
 
 
-CEntity *CGameWorld::ClosestEntity(vec2 Pos, float Radius, int Type, CEntity *pNotThis)
+CEntity *CGameWorld::ClosestEntity(vec2 Pos, float Radius, int Type, CEntity *pNotThis, int Area)
 {
 	// Find other players
 	float ClosestRange = Radius*2;
@@ -246,7 +258,13 @@ CEntity *CGameWorld::ClosestEntity(vec2 Pos, float Radius, int Type, CEntity *pN
 		if(p == pNotThis)
 			continue;
 
-		float Len = distance(Pos, p->m_Pos);
+		vec2 EntityPos = p->m_Pos;
+		if(GameServer()->m_MirrorAreaInfos.count(p->m_MirrorArea))
+			EntityPos -= GameServer()->m_MirrorAreaInfos[p->m_MirrorArea].m_Go;
+		if(GameServer()->m_MirrorAreaInfos.count(Area))
+			EntityPos += GameServer()->m_MirrorAreaInfos[Area].m_Go;
+
+		float Len = distance(Pos, EntityPos);
 		if(Len < p->m_ProximityRadius+Radius)
 		{
 			if(Len < ClosestRange)

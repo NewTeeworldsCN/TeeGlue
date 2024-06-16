@@ -7,8 +7,8 @@
 #include "projectile.h"
 
 CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, vec2 Dir, int Span,
-		int Damage, bool Explosive, float Force, int SoundImpact, int Weapon)
-: CEntity(pGameWorld, CGameWorld::ENTTYPE_PROJECTILE, vec2(round_to_int(Pos.x), round_to_int(Pos.y)))
+		int Damage, bool Explosive, float Force, int SoundImpact, int Weapon, int Area)
+: CEntity(pGameWorld, CGameWorld::ENTTYPE_PROJECTILE, vec2(round_to_int(Pos.x), round_to_int(Pos.y)), 0, Area)
 {
 	m_Type = Type;
 	m_Direction.x = round_to_int(Dir.x*100.0f) / 100.0f;
@@ -81,10 +81,10 @@ void CProjectile::Tick()
 	if(TargetChr || Collide || m_LifeSpan < 0 || GameLayerClipped(CurPos))
 	{
 		if(m_LifeSpan >= 0 || m_Weapon == WEAPON_GRENADE)
-			GameServer()->CreateSound(CurPos, m_SoundImpact);
+			GameServer()->CreateSound(CurPos, m_SoundImpact, CmaskAll(), m_MirrorArea);
 
 		if(m_Explosive)
-			GameServer()->CreateExplosion(CurPos, m_Owner, m_Weapon, m_Damage);
+			GameServer()->CreateExplosion(CurPos, m_Owner, m_Weapon, m_Damage, m_MirrorArea);
 
 		else if(TargetChr)
 			TargetChr->TakeDamage(m_Direction * maximum(0.001f, m_Force), m_Direction*-1, m_Damage, m_Owner, m_Weapon);
@@ -110,12 +110,28 @@ void CProjectile::FillInfo(CNetObj_Projectile *pProj)
 
 void CProjectile::Snap(int SnappingClient)
 {
+	vec2 SnapPos = m_Pos;
+	if(SnappingClient != -1 && GameServer()->m_apPlayers[SnappingClient])
+	{
+		int SnapMirrorArea = GameServer()->m_apPlayers[SnappingClient]->m_MirrorArea;
+		int SelfMirrorArea = m_MirrorArea;
+		if(SnapMirrorArea != SelfMirrorArea)
+		{
+			if(SnapMirrorArea == -1)
+				SnapPos -= GameServer()->m_MirrorAreaInfos[SelfMirrorArea].m_Go;
+			else
+				SnapPos += GameServer()->m_MirrorAreaInfos[SnapMirrorArea].m_Go;
+		}
+	}
 	float Ct = (Server()->Tick()-m_StartTick)/(float)Server()->TickSpeed();
 
+	vec2 TempPos = m_Pos;
+	m_Pos = SnapPos;
 	if(NetworkClipped(SnappingClient, GetPos(Ct)))
 		return;
 
 	CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
 	if(pProj)
 		FillInfo(pProj);
+	m_Pos = TempPos;
 }

@@ -172,6 +172,9 @@ public:
 
 	int m_TriggeredEvents;
 
+	vec2 m_AreaGo;
+	int m_MirrorArea; // -1 = null;
+
 	void Init(CWorldCore *pWorld, CCollision *pCollision);
 	void Reset();
 	void Tick(bool UseInput);

@@ -18,6 +18,10 @@ CCollision::CCollision()
 	m_Width = 0;
 	m_Height = 0;
 	m_pLayers = 0;
+	m_pTele = 0;
+
+	m_TeleIns.clear();
+	m_TeleOuts.clear();
 }
 
 void CCollision::Init(class CLayers *pLayers)
@@ -26,6 +30,13 @@ void CCollision::Init(class CLayers *pLayers)
 	m_Width = m_pLayers->GameLayer()->m_Width;
 	m_Height = m_pLayers->GameLayer()->m_Height;
 	m_pTiles = static_cast<CTile *>(m_pLayers->Map()->GetData(m_pLayers->GameLayer()->m_Data));
+
+	if(m_pLayers->TeleLayer())
+	{
+		unsigned int Size = m_pLayers->Map()->GetDataSize(m_pLayers->TeleLayer()->m_Tele);
+		if(Size >= (size_t)m_Width * m_Height * sizeof(CTeleTile))
+			m_pTele = static_cast<CTeleTile *>(m_pLayers->Map()->GetData(m_pLayers->TeleLayer()->m_Tele));
+	}
 
 	for(int i = 0; i < m_Width*m_Height; i++)
 	{
@@ -45,8 +56,31 @@ void CCollision::Init(class CLayers *pLayers)
 		case TILE_NOHOOK:
 			m_pTiles[i].m_Index = COLFLAG_SOLID|COLFLAG_NOHOOK;
 			break;
+		case TILE_WATER:
+			m_pTiles[i].m_Index = COLFLAG_WATER;
+			break;
 		default:
 			m_pTiles[i].m_Index = 0;
+		}
+	}
+
+	if(m_pTele)
+	{
+		for(int i = 0; i < m_Width * m_Height; i++)
+		{
+			int Number = TeleLayer()[i].m_Number;
+			int Type = TeleLayer()[i].m_Type;
+			if(Number > 0)
+			{
+				if(Type == TILE_MIRRORIN)
+				{
+					m_TeleIns[Number - 1].emplace_back(i % m_Width * 32.0f + 16.0f, i / m_Width * 32.0f + 16.0f);
+				}
+				else if(Type == TILE_MIRROROUT)
+				{
+					m_TeleOuts[Number - 1].emplace_back(i % m_Width * 32.0f + 16.0f, i / m_Width * 32.0f + 16.0f);
+				}
+			}
 		}
 	}
 }
@@ -57,6 +91,40 @@ int CCollision::GetTile(int x, int y) const
 	int Ny = clamp(y/32, 0, m_Height-1);
 
 	return m_pTiles[Ny*m_Width+Nx].m_Index > 128 ? 0 : m_pTiles[Ny*m_Width+Nx].m_Index;
+}
+
+int CCollision::GetTileport(int x, int y) const
+{
+	if(!m_pTele)
+		return 0;
+
+	int Nx = clamp(x/32, 0, m_Width-1);
+	int Ny = clamp(y/32, 0, m_Height-1);
+
+	if(Ny*m_Width+Nx < 0)
+		return 0;
+
+	if(m_pTele[Ny*m_Width+Nx].m_Type != TILE_MIRRORIN)
+		return 0;
+
+	return m_pTele[Ny*m_Width+Nx].m_Number;
+}
+
+int CCollision::GetTileportOut(int x, int y) const
+{
+	if(!m_pTele)
+		return 0;
+
+	int Nx = clamp(x/32, 0, m_Width-1);
+	int Ny = clamp(y/32, 0, m_Height-1);
+
+	if(Ny*m_Width+Nx < 0)
+		return 0;
+
+	if(m_pTele[Ny*m_Width+Nx].m_Type != TILE_MIRROROUT)
+		return 0;
+
+	return m_pTele[Ny*m_Width+Nx].m_Number;
 }
 
 bool CCollision::IsTile(int x, int y, int Flag) const

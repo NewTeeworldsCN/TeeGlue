@@ -17,6 +17,8 @@ public:
 	virtual void GetType(int Type, int *pStart, int *pNum) = 0;
 	virtual void *FindItem(int Type, int ID) = 0;
 	virtual int NumItems() = 0;
+	virtual int GetDataSize(int Index) const = 0;
+	virtual int GetItemSize(int Index) const = 0;
 };
 
 

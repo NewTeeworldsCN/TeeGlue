@@ -78,6 +78,8 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	GameWorld()->InsertEntity(this);
 	m_Alive = true;
 
+	m_pPlayer->m_MirrorArea = -1;
+
 	GameServer()->m_pController->OnCharacterSpawn(this);
 
 	return true;
@@ -97,7 +99,7 @@ void CCharacter::SetWeapon(int W)
 	m_LastWeapon = m_ActiveWeapon;
 	m_QueuedWeapon = -1;
 	m_ActiveWeapon = W;
-	GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SWITCH);
+	GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SWITCH, CmaskAll(), m_MirrorArea);
 
 	if(m_ActiveWeapon < 0 || m_ActiveWeapon >= NUM_WEAPONS)
 		m_ActiveWeapon = 0;
@@ -158,7 +160,7 @@ void CCharacter::HandleNinja()
 		const float Radius = GetProximityRadius() * 2.0f;
 		const vec2 Center = OldPos + (m_Pos - OldPos) * 0.5f;
 		CCharacter *aEnts[MAX_CLIENTS];
-		const int Num = GameWorld()->FindEntities(Center, Radius, (CEntity**)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+		const int Num = GameWorld()->FindEntities(Center, Radius, (CEntity**)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, m_MirrorArea);
 
 		for(int i = 0; i < Num; ++i)
 		{
@@ -183,7 +185,7 @@ void CCharacter::HandleNinja()
 				continue;
 
 			// Hit a player, give him damage and stuffs...
-			GameServer()->CreateSound(aEnts[i]->m_Pos, SOUND_NINJA_HIT);
+			GameServer()->CreateSound(aEnts[i]->m_Pos, SOUND_NINJA_HIT, CmaskAll(), m_MirrorArea);
 			if(m_NumObjectsHit < MAX_CLIENTS)
 				m_apHitObjects[m_NumObjectsHit++] = aEnts[i];
 
@@ -276,7 +278,7 @@ void CCharacter::FireWeapon()
 		m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
 		if(m_LastNoAmmoSound+Server()->TickSpeed() <= Server()->Tick())
 		{
-			GameServer()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO);
+			GameServer()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO, CmaskAll(), m_MirrorArea);
 			m_LastNoAmmoSound = Server()->Tick();
 		}
 		return;
@@ -295,29 +297,31 @@ void CCharacter::FireWeapon()
 	{
 		case WEAPON_HAMMER:
 		{
-			GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE);
+			GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE, CmaskAll(), m_MirrorArea);
 
 			CCharacter *apEnts[MAX_CLIENTS];
 			int Hits = 0;
 			int Num = GameWorld()->FindEntities(ProjStartPos, GetProximityRadius()*0.5f, (CEntity**)apEnts,
-														MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
-
+														MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, m_MirrorArea);
 			for(int i = 0; i < Num; ++i)
 			{
 				CCharacter *pTarget = apEnts[i];
+				vec2 TargetPos = pTarget->m_Pos;
+				TargetPos -= pTarget->Core()->m_AreaGo;
+				TargetPos += Core()->m_AreaGo;
 
-				if((pTarget == this) || GameServer()->Collision()->IntersectLine(ProjStartPos, pTarget->m_Pos, NULL, NULL))
+				if((pTarget == this) || GameServer()->Collision()->IntersectLine(ProjStartPos, TargetPos, NULL, NULL))
 					continue;
 
 				// set his velocity to fast upward (for now)
-				if(length(pTarget->m_Pos-ProjStartPos) > 0.0f)
-					GameServer()->CreateHammerHit(pTarget->m_Pos-normalize(pTarget->m_Pos-ProjStartPos)*GetProximityRadius()*0.5f);
+				if(length(TargetPos-ProjStartPos) > 0.0f)
+					GameServer()->CreateHammerHit(TargetPos-normalize(TargetPos-ProjStartPos)*GetProximityRadius()*0.5f, m_MirrorArea);
 				else
-					GameServer()->CreateHammerHit(ProjStartPos);
+					GameServer()->CreateHammerHit(ProjStartPos, m_MirrorArea);
 
 				vec2 Dir;
-				if(length(pTarget->m_Pos - m_Pos) > 0.0f)
-					Dir = normalize(pTarget->m_Pos - m_Pos);
+				if(length(TargetPos - m_Pos) > 0.0f)
+					Dir = normalize(TargetPos - m_Pos);
 				else
 					Dir = vec2(0.f, -1.f);
 
@@ -339,9 +343,9 @@ void CCharacter::FireWeapon()
 				ProjStartPos,
 				Direction,
 				(int)(Server()->TickSpeed()*GameServer()->Tuning()->m_GunLifetime),
-				g_pData->m_Weapons.m_Gun.m_pBase->m_Damage, false, 0, -1, WEAPON_GUN);
+				g_pData->m_Weapons.m_Gun.m_pBase->m_Damage, false, 0, -1, WEAPON_GUN, m_MirrorArea);
 
-			GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE);
+			GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, CmaskAll(), m_MirrorArea);
 		} break;
 
 		case WEAPON_SHOTGUN:
@@ -360,10 +364,10 @@ void CCharacter::FireWeapon()
 					ProjStartPos,
 					vec2(cosf(a), sinf(a))*Speed,
 					(int)(Server()->TickSpeed()*GameServer()->Tuning()->m_ShotgunLifetime),
-					g_pData->m_Weapons.m_Shotgun.m_pBase->m_Damage, false, 0, -1, WEAPON_SHOTGUN);
+					g_pData->m_Weapons.m_Shotgun.m_pBase->m_Damage, false, 0, -1, WEAPON_SHOTGUN, m_MirrorArea);
 			}
 
-			GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE);
+			GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE, CmaskAll(), m_MirrorArea);
 		} break;
 
 		case WEAPON_GRENADE:
@@ -373,15 +377,15 @@ void CCharacter::FireWeapon()
 				ProjStartPos,
 				Direction,
 				(int)(Server()->TickSpeed()*GameServer()->Tuning()->m_GrenadeLifetime),
-				g_pData->m_Weapons.m_Grenade.m_pBase->m_Damage, true, 0, SOUND_GRENADE_EXPLODE, WEAPON_GRENADE);
+				g_pData->m_Weapons.m_Grenade.m_pBase->m_Damage, true, 0, SOUND_GRENADE_EXPLODE, WEAPON_GRENADE, m_MirrorArea);
 
-			GameServer()->CreateSound(m_Pos, SOUND_GRENADE_FIRE);
+			GameServer()->CreateSound(m_Pos, SOUND_GRENADE_FIRE, CmaskAll(), m_MirrorArea);
 		} break;
 
 		case WEAPON_LASER:
 		{
-			new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID());
-			GameServer()->CreateSound(m_Pos, SOUND_LASER_FIRE);
+			new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID(), m_MirrorArea);
+			GameServer()->CreateSound(m_Pos, SOUND_LASER_FIRE, CmaskAll(), m_MirrorArea);
 		} break;
 
 		case WEAPON_NINJA:
@@ -392,7 +396,7 @@ void CCharacter::FireWeapon()
 			m_Ninja.m_CurrentMoveTime = g_pData->m_Weapons.m_Ninja.m_Movetime * Server()->TickSpeed() / 1000;
 			m_Ninja.m_OldVelAmount = length(m_Core.m_Vel);
 
-			GameServer()->CreateSound(m_Pos, SOUND_NINJA_FIRE);
+			GameServer()->CreateSound(m_Pos, SOUND_NINJA_FIRE, CmaskAll(), m_MirrorArea);
 		} break;
 
 	}
@@ -468,7 +472,7 @@ void CCharacter::GiveNinja()
 		m_LastWeapon = m_ActiveWeapon;
 	m_ActiveWeapon = WEAPON_NINJA;
 
-	GameServer()->CreateSound(m_Pos, SOUND_PICKUP_NINJA);
+	GameServer()->CreateSound(m_Pos, SOUND_PICKUP_NINJA, CmaskAll(), m_MirrorArea);
 }
 
 void CCharacter::SetEmote(int Emote, int Tick)
@@ -531,6 +535,38 @@ void CCharacter::Tick()
 	if(GameLayerClipped(m_Pos))
 	{
 		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
+	}
+
+	int Mirror = GameServer()->Collision()->GetTileport(m_Pos);
+	int MirrorOut = GameServer()->Collision()->GetTileportOut(m_Pos);
+	if(Mirror)
+	{
+		m_pPlayer->m_MirrorArea = Mirror;
+		m_MirrorArea = Mirror;
+		m_Core.m_Pos += GameServer()->m_MirrorAreaInfos[Mirror].m_Go;
+		m_Core.m_HookPos += GameServer()->m_MirrorAreaInfos[Mirror].m_Go;
+		m_Pos = m_Core.m_Pos;
+	}
+	else if(MirrorOut)
+	{
+		m_pPlayer->m_MirrorArea = -1;
+		m_MirrorArea = -1;
+		m_Core.m_Pos -= GameServer()->m_MirrorAreaInfos[MirrorOut].m_Go;
+		m_Core.m_HookPos -= GameServer()->m_MirrorAreaInfos[MirrorOut].m_Go;
+		m_Pos = m_Core.m_Pos;
+	}
+
+	if(GameServer()->m_MirrorAreaInfos.count(m_pPlayer->m_MirrorArea))
+		m_Core.m_AreaGo = GameServer()->m_MirrorAreaInfos[m_pPlayer->m_MirrorArea].m_Go;
+	else
+		m_Core.m_AreaGo = vec2(0, 0);
+	m_Core.m_MirrorArea = m_pPlayer->m_MirrorArea;
+
+	if(GameServer()->Collision()->TestBox(m_Pos, vec2(GetProximityRadius(), GetProximityRadius()), CCollision::COLFLAG_WATER))
+	{
+		if(GameServer()->m_WaterSpeed < 0 ? GameServer()->m_WaterSpeed < m_Core.m_Vel.x : GameServer()->m_WaterSpeed > m_Core.m_Vel.x)
+			m_Core.m_Vel.x += GameServer()->m_WaterSpeed / (float) Server()->TickSpeed();
+		m_Core.m_Vel.y -= 0.7f;
 	}
 
 	// handle Weapons
@@ -612,11 +648,11 @@ void CCharacter::TickDefered()
 	{
 		if(Server()->ClientProtocol(i) == NETPROTOCOL_SIX)
 		{
-			if(Events&COREEVENTFLAG_GROUND_JUMP && i != m_pPlayer->GetCID()) GameServer()->CreateSound(m_Pos, SOUND_PLAYER_JUMP, CmaskOne(i));
+			if(Events&COREEVENTFLAG_GROUND_JUMP && i != m_pPlayer->GetCID()) GameServer()->CreateSound(m_Pos, SOUND_PLAYER_JUMP, CmaskOne(i), m_MirrorArea);
 
-			if(Events&COREEVENTFLAG_HOOK_ATTACH_PLAYER) GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_PLAYER, CmaskOne(i));
-			if(Events&COREEVENTFLAG_HOOK_ATTACH_GROUND && i != m_pPlayer->GetCID()) GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_GROUND, CmaskOne(i));
-			if(Events&COREEVENTFLAG_HOOK_HIT_NOHOOK && i != m_pPlayer->GetCID()) GameServer()->CreateSound(m_Pos, SOUND_HOOK_NOATTACH, CmaskOne(i));
+			if(Events&COREEVENTFLAG_HOOK_ATTACH_PLAYER) GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_PLAYER, CmaskOne(i), m_MirrorArea);
+			if(Events&COREEVENTFLAG_HOOK_ATTACH_GROUND && i != m_pPlayer->GetCID()) GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_GROUND, CmaskOne(i), m_MirrorArea);
+			if(Events&COREEVENTFLAG_HOOK_HIT_NOHOOK && i != m_pPlayer->GetCID()) GameServer()->CreateSound(m_Pos, SOUND_HOOK_NOATTACH, CmaskOne(i), m_MirrorArea);
 		}
 	}
 
@@ -715,14 +751,14 @@ void CCharacter::Die(int Killer, int Weapon)
 	}
 
 	// a nice sound
-	GameServer()->CreateSound(m_Pos, SOUND_PLAYER_DIE);
+	GameServer()->CreateSound(m_Pos, SOUND_PLAYER_DIE, CmaskAll(), m_MirrorArea);
 
 	// this is for auto respawn after 3 secs
 	m_pPlayer->m_DieTick = Server()->Tick();
 
 	GameWorld()->RemoveEntity(this);
 	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
-	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCID());
+	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCID(), m_MirrorArea);
 }
 
 bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weapon)
@@ -774,7 +810,7 @@ bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weap
 	}
 
 	// create healthmod indicator
-	GameServer()->CreateDamage(m_Pos, m_pPlayer->GetCID(), Source, OldHealth-m_Health, OldArmor-m_Armor, From == m_pPlayer->GetCID());
+	GameServer()->CreateDamage(m_Pos, m_pPlayer->GetCID(), Source, OldHealth-m_Health, OldArmor-m_Armor, From == m_pPlayer->GetCID(), m_MirrorArea);
 
 	// do damage Hit sound
 	if(From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
@@ -786,7 +822,7 @@ bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weap
 				GameServer()->m_apPlayers[i]->GetSpectatorID() == From)
 				Mask |= CmaskOne(i);
 		}
-		GameServer()->CreateSound(GameServer()->m_apPlayers[From]->m_ViewPos, SOUND_HIT, Mask);
+		GameServer()->CreateSound(GameServer()->m_apPlayers[From]->m_ViewPos, SOUND_HIT, Mask, m_MirrorArea);
 	}
 
 	// check for death
@@ -808,9 +844,9 @@ bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weap
 	}
 
 	if(Dmg > 2)
-		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG);
+		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG, CmaskAll(), m_MirrorArea);
 	else
-		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT);
+		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT, CmaskAll(), m_MirrorArea);
 
 	SetEmote(EMOTE_PAIN, Server()->Tick() + 500 * Server()->TickSpeed() / 1000);
 
@@ -819,7 +855,40 @@ bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weap
 
 void CCharacter::Snap(int SnappingClient)
 {
-	if(NetworkClipped(SnappingClient))
+	vec2 SnapPos, HookPos, CheckPos;
+	if(!m_ReckoningTick || GameWorld()->m_Paused)
+	{
+		SnapPos = m_Core.m_Pos;
+		HookPos = m_Core.m_HookPos;
+	}
+	else
+	{
+		SnapPos = m_SendCore.m_Pos;
+		HookPos = m_SendCore.m_HookPos;
+	}
+	CheckPos = m_Core.m_Pos;
+
+	if(SnappingClient != -1 && GameServer()->m_apPlayers[SnappingClient])
+	{
+		int SnapMirrorArea = GameServer()->m_apPlayers[SnappingClient]->m_MirrorArea;
+		int SelfMirrorArea = m_MirrorArea;
+		if(SnapMirrorArea != SelfMirrorArea)
+		{
+			if(SnapMirrorArea == -1)
+			{
+				SnapPos -= GameServer()->m_MirrorAreaInfos[SelfMirrorArea].m_Go;
+				HookPos -= GameServer()->m_MirrorAreaInfos[SelfMirrorArea].m_Go;
+				CheckPos -= GameServer()->m_MirrorAreaInfos[SelfMirrorArea].m_Go;
+			}
+			else
+			{
+				SnapPos += GameServer()->m_MirrorAreaInfos[SnapMirrorArea].m_Go;
+				HookPos += GameServer()->m_MirrorAreaInfos[SnapMirrorArea].m_Go;
+				CheckPos += GameServer()->m_MirrorAreaInfos[SnapMirrorArea].m_Go;
+			}
+		}
+	}
+	if(NetworkClipped(SnappingClient, CheckPos))
 		return;
 
 	CNetObj_Character *pCharacter = static_cast<CNetObj_Character *>(Server()->SnapNewItem(NETOBJTYPE_CHARACTER, m_pPlayer->GetCID(), sizeof(CNetObj_Character)));
@@ -852,6 +921,12 @@ void CCharacter::Snap(int SnappingClient)
 	pCharacter->m_Health = 0;
 	pCharacter->m_Armor = 0;
 	pCharacter->m_TriggeredEvents = m_TriggeredEvents;
+	
+	pCharacter->m_X = round_to_int(SnapPos.x);
+	pCharacter->m_Y = round_to_int(SnapPos.y);
+
+	pCharacter->m_HookX = round_to_int(HookPos.x);
+	pCharacter->m_HookY = round_to_int(HookPos.y);
 
 	pCharacter->m_Weapon = m_ActiveWeapon;
 	pCharacter->m_AttackTick = m_AttackTick;

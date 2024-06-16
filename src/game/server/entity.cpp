@@ -7,7 +7,7 @@
 
 INetConverter *CEntity::NetConverter() { return m_pGameWorld->GameServer()->NetConverter(); }
 
-CEntity::CEntity(CGameWorld *pGameWorld, int ObjType, vec2 Pos, int ProximityRadius)
+CEntity::CEntity(CGameWorld *pGameWorld, int ObjType, vec2 Pos, int ProximityRadius, int MirrorArea)
 {
 	m_pGameWorld = pGameWorld;
 
@@ -18,6 +18,7 @@ CEntity::CEntity(CGameWorld *pGameWorld, int ObjType, vec2 Pos, int ProximityRad
 	m_ObjType = ObjType;
 
 	m_ProximityRadius = ProximityRadius;
+	m_MirrorArea = MirrorArea;
 
 	m_MarkedForDestroy = false;
 	m_Pos = Pos;

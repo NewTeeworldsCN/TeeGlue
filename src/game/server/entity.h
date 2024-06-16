@@ -47,12 +47,14 @@ protected:
 	*/
 	vec2 m_Pos;
 
+	int m_MirrorArea; // -1 = null;
+
 	/* Getters */
 	int GetID() const					{ return m_ID; }
 
 public:
 	/* Constructor */
-	CEntity(CGameWorld *pGameWorld, int Objtype, vec2 Pos, int ProximityRadius=0);
+	CEntity(CGameWorld *pGameWorld, int Objtype, vec2 Pos, int ProximityRadius=0, int MirrorArea = -1);
 
 	/* Destructor */
 	virtual ~CEntity();
@@ -70,6 +72,7 @@ public:
 	const vec2 &GetPos() const			{ return m_Pos; }
 	float GetProximityRadius() const	{ return m_ProximityRadius; }
 	bool IsMarkedForDestroy() const		{ return m_MarkedForDestroy; }
+	int MirrorArea() const				{ return m_MirrorArea; }
 
 	/* Setters */
 	void MarkForDestroy()				{ m_MarkedForDestroy = true; }

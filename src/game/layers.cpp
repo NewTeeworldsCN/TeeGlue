@@ -11,6 +11,7 @@ CLayers::CLayers()
 	m_pGameGroup = 0;
 	m_pGameLayer = 0;
 	m_pMap = 0;
+	m_pTeleLayer = 0;
 }
 
 void CLayers::Init(class IKernel *pKernel, IMap *pMap)
@@ -54,7 +55,17 @@ void CLayers::InitGameLayer()
 						m_pGameGroup->m_ClipH = 0;
 					}
 
+					/*
 					return; // there can only be one game layer and game group
+					*/
+				}
+				if(pTilemap->m_Flags & TILESLAYERFLAG_TELE)
+				{
+					if(pTilemap->m_Version <= 2)
+					{
+						pTilemap->m_Tele = *((int *)(pTilemap) + 15);
+					}
+					m_pTeleLayer = pTilemap;
 				}
 			}
 		}

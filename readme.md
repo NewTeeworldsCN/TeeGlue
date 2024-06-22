@@ -1,3 +1,3 @@
 Teeworlds Ocean
 =====
-A teeworlds Race mod
+A teeworlds PvE mod

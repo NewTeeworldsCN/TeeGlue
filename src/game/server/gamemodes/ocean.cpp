@@ -9,7 +9,7 @@ CGameControllerOcean::CGameControllerOcean(class CGameContext *pGameServer) :
     IGameController(pGameServer)
 {
     m_pGameType = "Ocean Race"; // Race
-    m_GameFlags = GAMEFLAG_RACE;
+    m_GameFlags = 0;
 }
 
 bool CGameControllerOcean::IsFriendlyFire(int ClientID1, int ClientID2) const

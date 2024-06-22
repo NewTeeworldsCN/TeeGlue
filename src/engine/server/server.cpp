@@ -269,8 +269,7 @@ CServer::CServer() : m_DemoRecorder(&m_SnapshotDelta)
 
 	str_copy(m_aShutdownReason, "Server shutdown", sizeof(m_aShutdownReason));
 
-	for(int i = 0;i < NUM_MAPTYPES; i ++)
-		m_aMapInfos[i].Reset();
+	m_vaMapInfos.clear();
 
 	m_MapReload = false;
 
@@ -808,7 +807,7 @@ int CServer::DelClientCallback(int ClientID, const char *pReason, void *pUser)
 
 void CServer::SendMap(int ClientID)
 {
-	CMapInfo *pInfo = &m_aMapInfos[m_aClients[ClientID].MapType()];
+	CMapInfo *pInfo = &m_vaMapInfos[m_aClients[ClientID].m_MapID][m_aClients[ClientID].MapType()];
 
 	if(ClientProtocol(ClientID) == NETPROTOCOL_SIX)
 	{
@@ -838,7 +837,7 @@ void CServer::SendMap(int ClientID)
 
 void CServer::SendMapData(int ClientID, int Chunk)
 {
-	CMapInfo *pInfo = &m_aMapInfos[m_aClients[ClientID].MapType()];
+	CMapInfo *pInfo = &m_vaMapInfos[m_aClients[ClientID].m_MapID][m_aClients[ClientID].MapType()];
 
 	int ChunkSize = 1024 - 128;
 	int Offset = Chunk * ChunkSize;
@@ -1051,9 +1050,9 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 					int Offset = Chunk * ChunkSize;
 
 					// check for last part
-					if(Offset+ChunkSize >= m_aMapInfos[m_aClients[ClientID].MapType()].m_MapSize)
+					if(Offset+ChunkSize >= m_vaMapInfos[m_aClients[ClientID].m_MapID][m_aClients[ClientID].MapType()].m_MapSize)
 					{
-						ChunkSize = m_aMapInfos[m_aClients[ClientID].MapType()].m_MapSize - Offset;
+						ChunkSize = m_vaMapInfos[m_aClients[ClientID].m_MapID][m_aClients[ClientID].MapType()].m_MapSize - Offset;
 						m_aClients[ClientID].m_MapChunk = -1;
 					}
 					else
@@ -1063,11 +1062,11 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 					if(m_aClients[ClientID].m_Protocol == NETPROTOCOL_SIX)
 					{
 						Msg.AddInt(m_aClients[ClientID].m_MapChunk == -1);
-						Msg.AddInt(m_aMapInfos[m_aClients[ClientID].MapType()].m_MapCrc);
+						Msg.AddInt(m_vaMapInfos[m_aClients[ClientID].m_MapID][m_aClients[ClientID].MapType()].m_MapCrc);
 						Msg.AddInt(Chunk);
 						Msg.AddInt(ChunkSize);
 					}
-					Msg.AddRaw(&m_aMapInfos[m_aClients[ClientID].MapType()].m_pMapData[Offset], ChunkSize);
+					Msg.AddRaw(&m_vaMapInfos[m_aClients[ClientID].m_MapID][m_aClients[ClientID].MapType()].m_pMapData[Offset], ChunkSize);
 					SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH, ClientID);
 
 					if(Config()->m_Debug)
@@ -1409,8 +1408,8 @@ void CServer::GenerateServerInfo6(CPacker *pPacker, int Token, int Type, NETADDR
 
 	if(Type == SERVERINFO_EXTENDED)
 	{
-		ADD_INT(pPacker, m_aMapInfos[MAPTYPE_SIX].m_MapCrc);
-		ADD_INT(pPacker, m_aMapInfos[MAPTYPE_SIX].m_MapSize);
+		ADD_INT(pPacker, (*m_vaMapInfos.begin()).second[MAPTYPE_SIX].m_MapCrc);
+		ADD_INT(pPacker, (*m_vaMapInfos.begin()).second[MAPTYPE_SIX].m_MapSize);
 	}
 
 	// gametype
@@ -1856,7 +1855,7 @@ static const char* GetMapTypeDir(int MapType)
 	return "maps"; // don't know what type is it 
 }
 
-int CServer::LoadMap(const char *pMapName, int MapType)
+int CServer::LoadMap(const char *pMapName, int MapType, int MapID)
 {
 	char aBuf[IO_MAX_PATH_LENGTH];
 	str_format(aBuf, sizeof(aBuf), "%s/%s.map", GetMapTypeDir(MapType), pMapName);
@@ -1874,16 +1873,16 @@ int CServer::LoadMap(const char *pMapName, int MapType)
 			return 0;
 		
 		// get the sha256 and crc of the map
-		m_aMapInfos[MapType].m_MapSha256 = m_pMap->Sha256();
-		m_aMapInfos[MapType].m_MapCrc = m_pMap->Crc();
+		m_vaMapInfos[MapID][MapType].m_MapSha256 = m_pMap->Sha256();
+		m_vaMapInfos[MapID][MapType].m_MapCrc = m_pMap->Crc();
 		
 		char aSha256[SHA256_MAXSTRSIZE];
-		sha256_str(m_aMapInfos[MapType].m_MapSha256, aSha256, sizeof(aSha256));
+		sha256_str(m_vaMapInfos[MapID][MapType].m_MapSha256, aSha256, sizeof(aSha256));
 
 		char aBufMsg[256];
 		str_format(aBufMsg, sizeof(aBufMsg), "%s sha256 is %s", aBuf, aSha256);
 		Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "server", aBufMsg);
-		str_format(aBufMsg, sizeof(aBufMsg), "%s crc is %08x", aBuf, m_aMapInfos[MapType].m_MapCrc);
+		str_format(aBufMsg, sizeof(aBufMsg), "%s crc is %08x", aBuf, m_vaMapInfos[MapID][MapType].m_MapCrc);
 		Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "server", aBufMsg);
 	}
 
@@ -1892,26 +1891,26 @@ int CServer::LoadMap(const char *pMapName, int MapType)
 	unsigned MapSize;
 	if(Storage()->ReadFile(aBuf, IStorage::TYPE_ALL, &pData, &MapSize))
 	{
-		m_aMapInfos[MapType].m_MapSize = (int) MapSize;
+		m_vaMapInfos[MapID][MapType].m_MapSize = (int) MapSize;
 
-		if(m_aMapInfos[MapType].m_pMapData && !m_aMapInfos[MapType].m_DefaultMap) // if it's not use the same data as 0.7, free it.
-			mem_free(m_aMapInfos[MapType].m_pMapData);
-		m_aMapInfos[MapType].m_pMapData = (unsigned char *) pData;
+		if(m_vaMapInfos[MapID][MapType].m_pMapData && !m_vaMapInfos[MapID][MapType].m_DefaultMap) // if it's not use the same data as 0.7, free it.
+			mem_free(m_vaMapInfos[MapID][MapType].m_pMapData);
+		m_vaMapInfos[MapID][MapType].m_pMapData = (unsigned char *) pData;
 
 		if(MapType != NETPROTOCOL_SEVEN)
 		{
-			m_aMapInfos[MapType].m_MapSha256 = sha256(m_aMapInfos[MapType].m_pMapData, m_aMapInfos[MapType].m_MapSize);
-			m_aMapInfos[MapType].m_MapCrc = crc32(0, m_aMapInfos[MapType].m_pMapData, m_aMapInfos[MapType].m_MapSize);
+			m_vaMapInfos[MapID][MapType].m_MapSha256 = sha256(m_vaMapInfos[MapID][MapType].m_pMapData, m_vaMapInfos[MapID][MapType].m_MapSize);
+			m_vaMapInfos[MapID][MapType].m_MapCrc = crc32(0, m_vaMapInfos[MapID][MapType].m_pMapData, m_vaMapInfos[MapID][MapType].m_MapSize);
 		
 			char aSha256[SHA256_MAXSTRSIZE];
-			sha256_str(m_aMapInfos[MapType].m_MapSha256, aSha256, sizeof(aSha256));
+			sha256_str(m_vaMapInfos[MapID][MapType].m_MapSha256, aSha256, sizeof(aSha256));
 
 			char aBufMsg[256];
 			str_format(aBufMsg, sizeof(aBufMsg), "%s sha256 is %s", aBuf, aSha256);
 			Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, GetMapTypeDir(MapType), aBufMsg);
 		}
 
-		m_aMapInfos[MapType].m_DefaultMap = false;
+		m_vaMapInfos[MapID][MapType].m_DefaultMap = false;
 	}
 	else
 	{
@@ -1923,13 +1922,22 @@ int CServer::LoadMap(const char *pMapName, int MapType)
 
 int CServer::LoadMap(const char *pMapName)
 {
+	// search for map id
+	int MapID = 0;
+	for(auto& MapInfo : m_vaMapInfos)
+	{
+		if(MapID != MapInfo.first)
+			break;
+		MapID ++;
+	}
+
 	bool LoadSuccess[NUM_MAPTYPES - 1];
 	for(int i = NUM_MAPTYPES - 1; i > MAPTYPE_SEVEN; i --)
 	{
-		LoadSuccess[i - 1] = LoadMap(pMapName, i);
+		LoadSuccess[i - 1] = LoadMap(pMapName, i, MapID);
 	}
 	
-	if(!LoadMap(pMapName, NETPROTOCOL_SEVEN))
+	if(!LoadMap(pMapName, NETPROTOCOL_SEVEN, MapID))
 		return 0;
 
 	// stop recording when we change map
@@ -1948,23 +1956,23 @@ int CServer::LoadMap(const char *pMapName)
 			continue;
 		{
 			// copy the sha256 and crc of the map
-			m_aMapInfos[i].m_MapSha256 = m_pMap->Sha256();
-			m_aMapInfos[i].m_MapCrc = m_pMap->Crc();
+			m_vaMapInfos[MapID][i].m_MapSha256 = m_pMap->Sha256();
+			m_vaMapInfos[MapID][i].m_MapCrc = m_pMap->Crc();
 		}
 
 		// copy complete map memory for download
 		{
-			m_aMapInfos[i].m_MapSize = m_aMapInfos[MAPTYPE_SEVEN].m_MapSize;
-			if(m_aMapInfos[i].m_pMapData && !m_aMapInfos[i].m_DefaultMap) // if it's not use the same data as 0.7, free it.
+			m_vaMapInfos[MapID][i].m_MapSize = m_vaMapInfos[MapID][MAPTYPE_SEVEN].m_MapSize;
+			if(m_vaMapInfos[MapID][i].m_pMapData && !m_vaMapInfos[MapID][i].m_DefaultMap) // if it's not use the same data as 0.7, free it.
 				mem_free(m_aMapInfos[i].m_pMapData);
-			m_aMapInfos[i].m_pMapData = m_aMapInfos[MAPTYPE_SEVEN].m_pMapData;
+			m_vaMapInfos[MapID][i].m_pMapData = m_vaMapInfos[MAPTYPE_SEVEN].m_pMapData;
 		}
 
 		char aBufMsg[32];
 		str_format(aBufMsg, sizeof(aBufMsg), "%s use 0.7 map", GetMapTypeDir(i));
 		Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "server", aBufMsg);
 
-		m_aMapInfos[i].m_DefaultMap = true;
+		m_vaMapInfos[i].m_DefaultMap = true;
 	}
 
 	str_copy(m_aCurrentMap, pMapName, sizeof(m_aCurrentMap));

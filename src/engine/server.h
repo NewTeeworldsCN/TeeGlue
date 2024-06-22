@@ -116,7 +116,7 @@ public:
 	virtual const char *NetVersionHashUsed() const = 0;
 	virtual const char *NetVersionHashReal() const = 0;
 
-	virtual bool TimeScore() const { return false; }
+	virtual bool TimeScore() const { return true; }
 
 #ifdef CONF_DDNETMASTER
 	virtual void OnUpdatePlayerServerInfo(char *aBuf, int BufSize, int ID) = 0;
